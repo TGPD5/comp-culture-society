@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioCPU — Neural Architecture Interface</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- INTRO -->
+    <div id="intro-screen">
+        <div class="intro-card">
+            <h1>BioCPU</h1>
+            <p class="subtitle">Neural Architecture Interface</p>
+            <hr class="divider">
+            <div class="lore-text">
+                <p>You are a <strong>Neural Architect</strong>. You sit in the Control Room of a human body, receiving high-level directives from the Conscious Mind above — and translating them into the precise sequence of low-level physical commands that the body's actuators can understand.</p>
+                <p>As Charles Babbage once reduced the labour of arithmetic to the clockwork motion of brass gears, you reduce <em>intention</em> to <em>instruction</em>. Every thought, a program. Every movement, a subroutine.</p>
+            </div>
+            <hr class="divider">
+            <div class="instructions">
+                <h3>How to play</h3>
+                <ul>
+                    <li>A directive arrives. Read each step's description in the instructions.</li>
+                    <li>Find the matching machine command on the control panel and press it in order.</li>
+                    <li>Correct on first try: <span class="col-good">+10 seconds</span> &nbsp; Correct after a hint: <span class="col-good">+7 seconds</span></li>
+                    <li>First wrong answer: <span class="col-bad">−4 seconds</span> &nbsp; Each subsequent wrong: <span class="col-bad">−2 seconds</span></li>
+                </ul>
+            </div>
+            <button id="start-btn" class="btn-primary">Start</button>
+        </div>
+    </div>
+
+    <!-- GAME -->
+    <div id="game-screen" class="hidden">
+
+        <div id="hud">
+            <div id="hud-directive" class="hud-cell">
+                <span class="hud-lbl">Directive</span>
+                <span id="hud-directive-text">—</span>
+            </div>
+            <div id="hud-center" class="hud-cell">
+                <span class="hud-lbl">Mission</span>
+                <span id="hud-mission-text">1 / 5</span>
+            </div>
+            <div id="hud-timer" class="hud-cell">
+                <span class="hud-lbl">Time remaining</span>
+                <span id="hud-timer-text">60</span>
+            </div>
+            <div id="hud-score" class="hud-cell">
+                <span class="hud-lbl">Score</span>
+                <span id="hud-score-text">0</span>
+            </div>
+        </div>
+
+        <div id="main-area">
+            <div id="body-panel" class="panel">
+                <div class="panel-lbl">Body status</div>
+                <svg id="body-svg" viewBox="0 0 200 360" xmlns="http://www.w3.org/2000/svg">
+                    <circle id="bp-head" class="bp" cx="100" cy="35" r="25"/>
+                    <circle id="bp-eyes" class="bp bp-accent" cx="91" cy="30" r="5"/>
+                    <circle id="bp-eyes2" class="bp bp-accent" cx="109" cy="30" r="5"/>
+                    <path id="bp-mouth" class="bp bp-accent" d="M89 43 Q100 51 111 43" fill="none" stroke-width="3"/>
+                    <rect id="bp-throat" class="bp" x="91" y="59" width="18" height="14" rx="3"/>
+                    <rect id="bp-torso" class="bp" x="65" y="73" width="70" height="92" rx="6"/>
+                    <rect id="bp-arm_left_upper" class="bp" x="32" y="76" width="33" height="13" rx="5" transform="rotate(18,48,82)"/>
+                    <rect id="bp-arm_left_lower" class="bp" x="16" y="103" width="13" height="44" rx="5" transform="rotate(8,22,125)"/>
+                    <rect id="bp-hand_left" class="bp" x="11" y="143" width="22" height="17" rx="4"/>
+                    <rect id="bp-arm_right_upper" class="bp" x="135" y="76" width="33" height="13" rx="5" transform="rotate(-18,152,82)"/>
+                    <rect id="bp-arm_right_lower" class="bp" x="171" y="103" width="13" height="44" rx="5" transform="rotate(-8,177,125)"/>
+                    <rect id="bp-hand_right" class="bp" x="167" y="143" width="22" height="17" rx="4"/>
+                    <rect id="bp-leg_left" class="bp" x="67" y="165" width="30" height="70" rx="6"/>
+                    <rect id="bp-leg_right" class="bp" x="103" y="165" width="30" height="70" rx="6"/>
+                    <rect id="bp-shin_left" class="bp" x="68" y="233" width="28" height="55" rx="5"/>
+                    <rect id="bp-shin_right" class="bp" x="104" y="233" width="28" height="55" rx="5"/>
+                    <rect id="bp-foot_left" class="bp" x="53" y="282" width="44" height="14" rx="5"/>
+                    <rect id="bp-foot_right" class="bp" x="103" y="282" width="44" height="14" rx="5"/>
+                    <line x1="5" y1="30" x2="86" y2="30" class="annot-line"/>
+                    <text x="2" y="29" class="annot-text">OPTIC</text>
+                    <line x1="5" y1="100" x2="32" y2="85" class="annot-line"/>
+                    <text x="2" y="99" class="annot-text">ARM-L</text>
+                    <line x1="195" y1="100" x2="168" y2="85" class="annot-line"/>
+                    <text x="175" y="99" class="annot-text">ARM-R</text>
+                    <line x1="5" y1="200" x2="67" y2="200" class="annot-line"/>
+                    <text x="2" y="199" class="annot-text">LEGS</text>
+                </svg>
+            </div>
+
+            <div id="steps-panel" class="panel">
+                <div class="panel-lbl">Instructions</div>
+                <div id="steps-list"></div>
+                <div id="step-hint" class="step-hint"></div>
+            </div>
+        </div>
+
+        <div id="control-panel" class="panel">
+            <div class="panel-lbl">Actuator controls — select next command</div>
+            <div id="buttons-grid"></div>
+        </div>
+
+        <div id="feedback" class="hidden"></div>
+
+    </div>
+
+    <!-- END -->
+    <div id="end-screen" class="hidden">
+        <div class="end-card">
+            <h2 id="end-title">Session complete</h2>
+            <p id="end-message" class="end-msg"></p>
+            <div id="end-score-wrap">
+                <span class="hud-lbl">Score</span>
+                <span id="end-score-text">0</span>
+            </div>
+            <button id="restart-btn" class="btn-primary">Play again</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
