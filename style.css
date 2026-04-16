@@ -364,16 +364,16 @@ body {
   border: 1px solid var(--border);
 }
 
-/* Cockpit zone: ±15% of bar width either side of centre (bar spans ±3σ)
-   left  = 50% - 15% = 35%
-   width = 30%
-   To recalibrate: change left and width here, and Z_THRESHOLD in game.js (line 6).
-   Z_THRESHOLD = (width% / 100) * 6 / 2   e.g. 30% wide → (0.30/2)*6 = 0.9 */
+/* Cockpit zone: ±6.4% of bar width either side of centre (bar spans ±3σ)
+   left  = 50% - 6.4% = 43.6%
+   width = 12.8%
+   To recalibrate: change left and width here, and Z_THRESHOLD in game.js (line 5).
+   Z_THRESHOLD = (width% / 100) * 6 / 2   e.g. 12.8% wide → (0.128/2)*6 = 0.385 */
 .bar-track::before {
   content: '';
   position: absolute;
-  left: 35%;
-  width: 30%;
+  left: 43.6%;
+  width: 12.8%;
   top: 0; bottom: 0;
   background: rgba(212,160,23,0.20);
   border-left:  1px solid rgba(212,160,23,0.65);

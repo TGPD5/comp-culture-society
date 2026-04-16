@@ -2,8 +2,8 @@
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
 
-const Z_THRESHOLD    = 0.9;    // ±15% of bar width (bar spans ±3σ); covers ~63% of population per dimension
-const CRASH_THRESHOLD = 2;     // ≥2 out-of-range → crash
+const Z_THRESHOLD    = 0.385;  // ±6.4% of bar width (bar spans ±3σ); covers ~30% of population per dimension
+const CRASH_THRESHOLD = 3;     // ≥3 out-of-range → crash
 const MAX_DEATHS     = 3;      // 3 crashes → court-martial
 
 function rand(n) { return Math.floor(Math.random() * n); }
@@ -557,7 +557,7 @@ function showCourtMartial() {
     `<p>MEMORANDUM — FOR THE RECORD</p>` +
     `<p style="margin-top:10px">The above-named clerk is hereby relieved of all screening duties, effective immediately, and remanded to disciplinary review.</p>` +
     `<p style="margin-top:10px">Despite access to full physical dossiers, this clerk approved <strong>${state.deaths}</strong> candidate${state.deaths !== 1 ? 's' : ''} whose measurements rendered them unfit for the P-51 Mustang cockpit. Each resulted in a fatal aircraft loss.</p>` +
-    `<p style="margin-top:10px">It is the finding of this office that the clerk failed to recognise a fundamental truth: <em>no individual is average across many dimensions simultaneously.</em> The cockpit was built for an abstraction. Nearly every man who walks through that door will deviate from specification on at least one measurement — but only those who deviate on two or more cannot fly safely.</p>` +
+    `<p style="margin-top:10px">It is the finding of this office that the clerk failed to recognise a fundamental truth: <em>no individual is average across many dimensions simultaneously.</em> The cockpit was built for an abstraction. Nearly every man who walks through that door will deviate from specification on at least one measurement — but only those who deviate on three or more cannot fly safely.</p>` +
     `<p style="margin-top:10px;color:#8B9457;font-size:0.74rem">— Col. R.A. Hammond, USAAF Procurement</p>`;
 }
 
