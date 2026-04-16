@@ -1,121 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BioCPU — Neural Architecture Interface</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FORM AAF-19 — PILOT SCREENING</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- INTRO -->
-    <div id="intro-screen">
-        <div class="intro-card">
-            <h1>BioCPU</h1>
-            <p class="subtitle">Neural Architecture Interface</p>
-            <hr class="divider">
-            <div class="lore-text">
-                <p>You are a <strong>Neural Architect</strong>. You sit in the Control Room of a human body, receiving high-level directives from the Conscious Mind above — and translating them into the precise sequence of low-level physical commands that the body's actuators can understand.</p>
-                <p>As Charles Babbage once reduced the labour of arithmetic to the clockwork motion of brass gears, you reduce <em>intention</em> to <em>instruction</em>. Every thought, a program. Every movement, a subroutine.</p>
-            </div>
-            <hr class="divider">
-            <div class="instructions">
-                <h3>How to play</h3>
-                <ul>
-                    <li>A directive arrives. Read each step's description in the instructions.</li>
-                    <li>Find the matching machine command on the control panel and press it in order.</li>
-                    <li>Correct on first try: <span class="col-good">+10 seconds</span> &nbsp; Correct after a hint: <span class="col-good">+7 seconds</span></li>
-                    <li>First wrong answer: <span class="col-bad">−4 seconds</span> &nbsp; Each subsequent wrong: <span class="col-bad">−2 seconds</span></li>
-                </ul>
-            </div>
-            <button id="start-btn" class="btn-primary">Start</button>
+  <!-- SCREEN 1: BRIEFING -->
+  <div id="screen-briefing" class="screen active">
+    <div class="briefing-card">
+      <div class="memo-header">
+        <div class="memo-classification">★ RESTRICTED ★</div>
+        <div class="memo-meta">
+          <span>FORM AAF-19 / PILOT PHYSICAL SCREENING</span>
+          <span>BROOKS AIR FORCE BASE, TEXAS</span>
         </div>
+      </div>
+      <div class="briefing-divider"></div>
+      <div class="memo-to-from">
+        <div class="memo-line"><span class="memo-key">TO:</span><span class="memo-val">CLERK, RECORDS DIVISION</span></div>
+        <div class="memo-line"><span class="memo-key">FROM:</span><span class="memo-val">COL. R.A. HAMMOND, USAAF PROCUREMENT</span></div>
+        <div class="memo-line"><span class="memo-key">RE:</span><span class="memo-val">P-51 MUSTANG PILOT SCREENING — IMMEDIATE DUTY</span></div>
+      </div>
+      <div class="briefing-divider"></div>
+      <div class="briefing-body">
+        <p>Effective immediately, you are assigned to the Pilot Screening Desk. Candidates will present themselves one at a time. Your job is to stamp each form <strong>ACCEPTED</strong> or <strong>REJECTED</strong>.</p>
+        <p>The P-51 Mustang cockpit was engineered to a precise physical specification. Each candidate's measurements are recorded on the form in front of you. <strong>The amber-shaded zone on each bar indicates the acceptable range.</strong></p>
+        <p>Be advised: engineering has determined that a pilot whose body deviates from specification on <strong>two or more dimensions</strong> will be unable to safely operate the aircraft. In the event of such a pilot being cleared by this desk and subsequently lost, <strong>you will be held personally liable.</strong></p>
+        <p>Candidates will continue to report until you are dismissed. There is no shortage of volunteers.</p>
+        <p>Do your job. Do not make mistakes.</p>
+      </div>
+      <div class="briefing-divider"></div>
+      <div class="memo-footer">— Col. Hammond</div>
+      <button id="btn-start" class="btn-primary">REPORT FOR DUTY</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: RECRUITMENT -->
+  <div id="screen-recruitment" class="screen">
+
+    <div id="hud">
+      <div class="hud-cell">
+        <span class="hud-lbl">CANDIDATE #</span>
+        <span id="hud-seen">1</span>
+      </div>
+      <div class="hud-cell">
+        <span class="hud-lbl">ACCEPTED</span>
+        <span id="hud-recruited">0</span>
+      </div>
+      <div class="hud-cell">
+        <span class="hud-lbl">SAFE FLIGHTS</span>
+        <span id="hud-safe">0</span>
+      </div>
+      <div class="hud-cell hud-deaths-cell">
+        <span class="hud-lbl">DEATHS</span>
+        <span id="hud-deaths">0 / 3</span>
+      </div>
     </div>
 
-    <!-- GAME -->
-    <div id="game-screen" class="hidden">
+    <div id="stage">
 
-        <div id="hud">
-            <div id="hud-directive" class="hud-cell">
-                <span class="hud-lbl">Directive</span>
-                <span id="hud-directive-text">—</span>
-            </div>
-            <div id="hud-center" class="hud-cell">
-                <span class="hud-lbl">Mission</span>
-                <span id="hud-mission-text">1 / 5</span>
-            </div>
-            <div id="hud-timer" class="hud-cell">
-                <span class="hud-lbl">Time remaining</span>
-                <span id="hud-timer-text">60</span>
-            </div>
-            <div id="hud-score" class="hud-cell">
-                <span class="hud-lbl">Score</span>
-                <span id="hud-score-text">0</span>
-            </div>
+      <!-- LEFT: figure + buttons -->
+      <div id="figure-col">
+        <div id="candidate-card">
+          <div id="candidate-name">ROBERT SMITH</div>
+          <div id="candidate-num">CANDIDATE #1</div>
         </div>
-
-        <div id="main-area">
-            <div id="body-panel" class="panel">
-                <div class="panel-lbl">Body status</div>
-                <svg id="body-svg" viewBox="0 0 200 360" xmlns="http://www.w3.org/2000/svg">
-                    <circle id="bp-head" class="bp" cx="100" cy="35" r="25"/>
-                    <circle id="bp-eyes" class="bp bp-accent" cx="91" cy="30" r="5"/>
-                    <circle id="bp-eyes2" class="bp bp-accent" cx="109" cy="30" r="5"/>
-                    <path id="bp-mouth" class="bp bp-accent" d="M89 43 Q100 51 111 43" fill="none" stroke-width="3"/>
-                    <rect id="bp-throat" class="bp" x="91" y="59" width="18" height="14" rx="3"/>
-                    <rect id="bp-torso" class="bp" x="65" y="73" width="70" height="92" rx="6"/>
-                    <rect id="bp-arm_left_upper" class="bp" x="32" y="76" width="33" height="13" rx="5" transform="rotate(18,48,82)"/>
-                    <rect id="bp-arm_left_lower" class="bp" x="16" y="103" width="13" height="44" rx="5" transform="rotate(8,22,125)"/>
-                    <rect id="bp-hand_left" class="bp" x="11" y="143" width="22" height="17" rx="4"/>
-                    <rect id="bp-arm_right_upper" class="bp" x="135" y="76" width="33" height="13" rx="5" transform="rotate(-18,152,82)"/>
-                    <rect id="bp-arm_right_lower" class="bp" x="171" y="103" width="13" height="44" rx="5" transform="rotate(-8,177,125)"/>
-                    <rect id="bp-hand_right" class="bp" x="167" y="143" width="22" height="17" rx="4"/>
-                    <rect id="bp-leg_left" class="bp" x="67" y="165" width="30" height="70" rx="6"/>
-                    <rect id="bp-leg_right" class="bp" x="103" y="165" width="30" height="70" rx="6"/>
-                    <rect id="bp-shin_left" class="bp" x="68" y="233" width="28" height="55" rx="5"/>
-                    <rect id="bp-shin_right" class="bp" x="104" y="233" width="28" height="55" rx="5"/>
-                    <rect id="bp-foot_left" class="bp" x="53" y="282" width="44" height="14" rx="5"/>
-                    <rect id="bp-foot_right" class="bp" x="103" y="282" width="44" height="14" rx="5"/>
-                    <line x1="5" y1="30" x2="86" y2="30" class="annot-line"/>
-                    <text x="2" y="29" class="annot-text">OPTIC</text>
-                    <line x1="5" y1="100" x2="32" y2="85" class="annot-line"/>
-                    <text x="2" y="99" class="annot-text">ARM-L</text>
-                    <line x1="195" y1="100" x2="168" y2="85" class="annot-line"/>
-                    <text x="175" y="99" class="annot-text">ARM-R</text>
-                    <line x1="5" y1="200" x2="67" y2="200" class="annot-line"/>
-                    <text x="2" y="199" class="annot-text">LEGS</text>
-                </svg>
-            </div>
-
-            <div id="steps-panel" class="panel">
-                <div class="panel-lbl">Instructions</div>
-                <div id="steps-list"></div>
-                <div id="step-hint" class="step-hint"></div>
-            </div>
+        <div id="canvas-wrap">
+          <canvas id="figure-canvas" width="160" height="240"></canvas>
         </div>
-
-        <div id="control-panel" class="panel">
-            <div class="panel-lbl">Actuator controls — select next command</div>
-            <div id="buttons-grid"></div>
+        <div id="verdict-stamp"></div>
+        <div id="decision-panel">
+          <button id="btn-accept" class="btn-accept">✓ ACCEPT</button>
+          <button id="btn-reject" class="btn-reject">✗ REJECT</button>
+          <button id="btn-next" class="btn-next hidden">NEXT →</button>
         </div>
+      </div>
 
-        <div id="feedback" class="hidden"></div>
+      <!-- RIGHT: measurement table -->
+      <div id="table-col" style="position:relative;">
+        <div id="sticky-note">⚠ pilot crashes if<br><strong>2 or more</strong><br>specs are out of range</div>
+        <div class="table-header">▶ PHYSICAL DOSSIER — FORM AAF-19</div>
+        <div class="table-subheader">Amber zone = cockpit specification range (middle 30% of population)</div>
+        <div id="measurement-bars"></div>
+
+        <!-- MATHEMATICIAN'S NOTE -->
+        <div id="math-note">
+          <div class="math-note-header">▶ NOTE — STATISTICAL METHODS DIV., CAPT. E.L. MORSE</div>
+          <p>Each candidate's physical dimensions are drawn from the general male population, which follows a <strong>normal distribution</strong> for each measurement — each entirely independent of the others. On the bar charts above, the center of the amber zone corresponds to the population mean for that dimension — the value most men cluster around. The amber zone covers <strong>15% of the observed measurement range to each side</strong> of the mean: a perfectly reasonable window into which we expect a good number of men to fall.</p>
+        </div>
+      </div>
 
     </div>
 
-    <!-- END -->
-    <div id="end-screen" class="hidden">
-        <div class="end-card">
-            <h2 id="end-title">Session complete</h2>
-            <p id="end-message" class="end-msg"></p>
-            <div id="end-score-wrap">
-                <span class="hud-lbl">Score</span>
-                <span id="end-score-text">0</span>
-            </div>
-            <button id="restart-btn" class="btn-primary">Play again</button>
-        </div>
-    </div>
+  </div>
 
-    <script src="game.js"></script>
+  <!-- CRASH OVERLAY -->
+  <div id="crash-overlay" class="hidden">
+    <canvas id="crash-canvas" width="400" height="160"></canvas>
+    <div id="crash-caption"></div>
+    <div id="crash-sub"></div>
+  </div>
+
+  <!-- SCREEN 3: COURT-MARTIAL -->
+  <div id="screen-debrief" class="screen">
+    <div class="debrief-card">
+      <div class="memo-classification" style="color:var(--red);border-color:var(--red)">★ COURT-MARTIAL ★</div>
+      <h2 id="debrief-title">YOU ARE RELIEVED OF DUTY</h2>
+      <div class="briefing-divider"></div>
+      <div id="debrief-stats"></div>
+      <div class="briefing-divider"></div>
+      <div id="debrief-message"></div>
+      <button id="btn-restart" class="btn-primary">ACCEPT DISCHARGE</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
 </body>
 </html>

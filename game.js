@@ -1,667 +1,656 @@
-// ── MISSION BANK (20 total — 5 sampled per session) ──────────────────────────
-//
-// Each step:   id (matches a COMMANDS entry), desc (human language shown in queue),
-//              body (body-part keys to highlight), hold? (engage toggle), release? (disengage toggle)
+'use strict';
 
-const MISSION_BANK = [
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
 
-  // 1 ─────────────────────────────────────────────────────────────────────────
-  {
-    name: "Drink water",
-    flavor: "Hydration threshold is critical.",
-    steps: [
-      { id: "walk_to",        desc: "Walk to the kitchen.",                                          body: ["leg_left","leg_right","shin_left","shin_right"] },
-      { id: "scan_visual",    desc: "Locate the glass.",                                        body: ["eyes"] },
-      { id: "extend_arm",     desc: "Reach toward the glass.",                                  body: ["arm_right_upper","arm_right_lower"] },
-      { id: "open_hand",      desc: "Open your grip.",                                          body: ["hand_right"] },
-      { id: "grip_fingers",   desc: "Close fingers around the glass.",                          body: ["hand_right"] },
-      { id: "raise_arm",      desc: "Lift the glass to mouth level.",                           body: ["arm_right_upper","arm_right_lower"] },
-      { id: "open_mouth",     desc: "Open your mouth.",                                         body: ["mouth"] },
-      { id: "tilt_forearm",   desc: "Tilt the glass so liquid flows out.",                      body: ["arm_right_lower","hand_right"] },
-      { id: "swallow",        desc: "Contract throat. Swallow.",                                body: ["throat"] },
-      { id: "lower_arm",      desc: "Set the glass back down.",                                 body: ["arm_right_upper","arm_right_lower"] },
-    ]
-  },
+const Z_THRESHOLD    = 0.9;    // ±15% of bar width (bar spans ±3σ); covers ~63% of population per dimension
+const CRASH_THRESHOLD = 2;     // ≥2 out-of-range → crash
+const MAX_DEATHS     = 3;      // 3 crashes → court-martial
 
-  // 2 ─────────────────────────────────────────────────────────────────────────
-  {
-    name: "Wave hello",
-    flavor: "Social acknowledgment protocol.",
-    steps: [
-      { id: "scan_visual",    desc: "Spot the person you're greeting.",                         body: ["eyes"] },
-      { id: "raise_arm",      desc: "Raise your arm to about shoulder height.",                 body: ["arm_right_upper","arm_right_lower"] },
-      { id: "extend_fingers", desc: "Spread your fingers flat.",                                body: ["hand_right"] },
-      { id: "oscillate_wrist",desc: "Pivot your wrist side to side a few times.",               body: ["arm_right_lower","hand_right"] },
-      { id: "lower_arm",      desc: "Bring your arm back down.",                                body: ["arm_right_upper","arm_right_lower"] },
-    ]
-  },
+function rand(n) { return Math.floor(Math.random() * n); }
+function zToPercent(z) { return Math.max(1, Math.min(99, ((z + 3) / 6) * 100)); }
 
-  // 3 ─────────────────────────────────────────────────────────────────────────
-  {
-    name: "Sit down",
-    flavor: "Energy conservation mode.",
-    steps: [
-      { id: "scan_visual",    desc: "Locate a seat.",                                           body: ["eyes"] },
-      { id: "rotate_torso",   desc: "Turn around so your back faces the chair.",                body: ["torso"] },
-      { id: "bend_knees",     desc: "Bend your knees to begin lowering.",                       body: ["leg_left","leg_right"] },
-      { id: "lower_body",     desc: "Slowly lower yourself onto the seat.",                     body: ["torso","leg_left","leg_right"] },
-      { id: "relax_muscles",  desc: "Release tension. Let the chair take your weight.",         body: ["torso"] },
-    ]
-  },
+// ── MEASUREMENTS ──────────────────────────────────────────────────────────────
 
-  // 4 ─────────────────────────────────────────────────────────────────────────
-  {
-    name: "Pick up object",
-    flavor: "Item on a lower surface. Retrieve it.",
-    steps: [
-      { id: "scan_visual",      desc: "Find the object on the floor.",                          body: ["eyes"] },
-      { id: "bend_torso",       desc: "Lean your torso forward.",                               body: ["torso"] },
-      { id: "extend_arm",       desc: "Reach your arm down toward it.",                         body: ["arm_right_upper","arm_right_lower"] },
-      { id: "open_hand",        desc: "Open your fingers to prepare a grip.",                   body: ["hand_right"] },
-      { id: "grip_fingers",     desc: "Close fingers around the object.",                       body: ["hand_right"] },
-      { id: "raise_arm",        desc: "Lift your arm with the object.",                         body: ["arm_right_upper","arm_right_lower"] },
-      { id: "straighten_torso", desc: "Stand back upright.",                                    body: ["torso"] },
-    ]
-  },
-
-  // 5 ─────────────────────────────────────────────────────────────────────────
-  {
-    name: "Suppress sneeze",
-    flavor: "Nasal irritant detected. Social protocol: suppress.",
-    steps: [
-      { id: "detect_stimulus",  desc: "Nasal sensors firing. Identify the sensation.",          body: ["head"] },
-      { id: "raise_arm",        desc: "Bring your hand toward your face.",                      body: ["arm_right_upper","arm_right_lower"] },
-      { id: "extend_fingers",   desc: "Position fingers over the nose.",                        body: ["hand_right"] },
-      { id: "grip_fingers",     desc: "Pinch the nose bridge firmly.",                          body: ["hand_right"] },
-      { id: "seal_mouth",       desc: "Clamp your mouth shut. Build pressure.",                 body: ["mouth"] },
-      { id: "tense_diaphragm",  desc: "Tighten your core. Resist the expulsion.",               body: ["torso"] },
-    ]
-  },
-
-  // 6 ─────────────────────────────────────────────────────────────────────────
-  {
-    name: "Brush teeth",
-    flavor: "Oral hygiene cycle.",
-    steps: [
-      { id: "walk_to",        desc: "Walk to the bathroom.",                                         body: ["leg_left","leg_right","shin_left","shin_right"] },
-      { id: "scan_visual",    desc: "Find the toothbrush.",                                     body: ["eyes"] },
-      { id: "extend_arm",     desc: "Reach for the brush.",                                     body: ["arm_right_upper","arm_right_lower"] },
-      { id: "grip_fingers",   desc: "Pick up the toothbrush.",                                  body: ["hand_right"] },
-      { id: "raise_arm",      desc: "Bring the brush to your mouth.",                           body: ["arm_right_upper","arm_right_lower"] },
-      { id: "open_mouth",     desc: "Open your mouth and position the brush at your teeth.",    body: ["mouth"] },
-      { id: "oscillate_wrist",desc: "Scrub in small circles across all teeth. Two minutes.",    body: ["arm_right_lower","hand_right"] },
-      { id: "spit",           desc: "Lean over the sink. Expel toothpaste.",                    body: ["mouth","throat"] },
-      { id: "lower_arm",      desc: "Return the brush to the holder.",                          body: ["arm_right_upper","arm_right_lower"] },
-    ]
-  },
-
-  // 7 ─────────────────────────────────────────────────────────────────────────
-  {
-    name: "Wash hands",
-    flavor: "Sanitization required.",
-    steps: [
-      { id: "walk_to",        desc: "Walk to the sink.",                                             body: ["leg_left","leg_right","shin_left","shin_right"] },
-      { id: "scan_visual",    desc: "Locate the sink and soap dispenser.",                      body: ["eyes"] },
-      { id: "extend_arm",     desc: "Reach toward the faucet handle.",                          body: ["arm_right_upper","arm_right_lower"] },
-      { id: "rotate_wrist",   desc: "Turn the faucet. Start the water flow.",                   body: ["arm_right_lower","hand_right"] },
-      { id: "open_hand",      desc: "Place hands under the running water.",                     body: ["hand_left","hand_right"] },
-      { id: "press_button",   desc: "Press the soap dispenser.",                                body: ["hand_right"] },
-      { id: "grip_fingers",   desc: "Rub hands together. Lather the soap.",                     body: ["hand_left","hand_right"] },
-      { id: "oscillate_wrist",desc: "Keep scrubbing. Cover all surfaces. 20 seconds.",          body: ["hand_left","hand_right","arm_left_lower","arm_right_lower"] },
-      { id: "rotate_wrist",   desc: "Turn the faucet off.",                                     body: ["arm_right_lower","hand_right"] },
-    ]
-  },
-
-  // 8 ─────────────────────────────────────────────────────────────────────────
-  {
-    name: "Open a door",
-    flavor: "Obstacle blocking passage.",
-    steps: [
-      { id: "walk_to",        desc: "Walk to the door.",                                             body: ["leg_left","leg_right","shin_left","shin_right"] },
-      { id: "scan_visual",    desc: "Identify the door and its handle.",                        body: ["eyes"] },
-      { id: "extend_arm",     desc: "Reach out toward the handle.",                             body: ["arm_right_upper","arm_right_lower"] },
-      { id: "grip_fingers",   desc: "Grip the door handle.",                                    body: ["hand_right"] },
-      { id: "rotate_wrist",   desc: "Turn the handle to release the latch.",                    body: ["arm_right_lower","hand_right"] },
-      { id: "pull_object",    desc: "Pull the door toward you.",                                body: ["arm_right_upper","arm_right_lower"] },
-      { id: "lower_arm",      desc: "Release the handle. Step through.",                        body: ["arm_right_upper","arm_right_lower"] },
-    ]
-  },
-
-  // 9 ─────────────────────────────────────────────────────────────────────────
-  {
-    name: "Vacuum the floor",
-    flavor: "Surface contamination detected.",
-    steps: [
-      { id: "walk_to",        desc: "Walk to where the vacuum is stored.",                           body: ["leg_left","leg_right","shin_left","shin_right"] },
-      { id: "scan_visual",    desc: "Locate the vacuum cleaner.",                               body: ["eyes"] },
-      { id: "extend_arm",     desc: "Reach for the vacuum handle.",                             body: ["arm_right_upper","arm_right_lower"] },
-      { id: "grip_fingers",   desc: "Grip the handle firmly.",                                  body: ["hand_right"] },
-      { id: "press_button",   desc: "Press the power button. Motor engages.",                   body: ["hand_right"] },
-      { id: "push_object",    desc: "Push the vacuum forward along the floor.",                 body: ["arm_left_upper","arm_left_lower","arm_right_upper","arm_right_lower"] },
-      { id: "pull_object",    desc: "Draw the vacuum back toward you.",                         body: ["arm_left_upper","arm_left_lower","arm_right_upper","arm_right_lower"] },
-      { id: "press_button",   desc: "Press power button again. Motor off.",                     body: ["hand_right"] },
-    ]
-  },
-
-  // 10 ────────────────────────────────────────────────────────────────────────
-  {
-    name: "Wash dishes",
-    flavor: "Accumulated residue on surfaces.",
-    steps: [
-      { id: "walk_to",        desc: "Walk to the kitchen sink.",                                     body: ["leg_left","leg_right","shin_left","shin_right"] },
-      { id: "scan_visual",    desc: "Spot a dirty dish and find the sponge.",                   body: ["eyes"] },
-      { id: "extend_arm",     desc: "Reach for the dish.",                                      body: ["arm_right_upper","arm_right_lower"] },
-      { id: "grip_fingers",   desc: "Pick up the dish.",                                        body: ["hand_right"] },
-      { id: "rotate_wrist",   desc: "Turn on the faucet. Wet the dish.",                        body: ["arm_left_lower","hand_left"] },
-      { id: "open_hand",      desc: "Pick up the sponge with the other hand.",                  body: ["hand_left"] },
-      { id: "oscillate_wrist",desc: "Scrub the dish in circular strokes.",                      body: ["hand_left","arm_left_lower"] },
-      { id: "tilt_forearm",   desc: "Rinse the dish under the running water.",                  body: ["arm_right_lower","hand_right"] },
-      { id: "lower_arm",      desc: "Place the dish in the drying rack.",                       body: ["arm_right_upper","arm_right_lower"] },
-    ]
-  },
-
-  // 11 ────────────────────────────────────────────────────────────────────────
-  {
-    name: "Make coffee",
-    flavor: "Caffeine levels are low.",
-    steps: [
-      { id: "walk_to",        desc: "Walk to the coffee maker.",                                     body: ["leg_left","leg_right","shin_left","shin_right"] },
-      { id: "scan_visual",    desc: "Locate the coffee maker and an empty mug.",                body: ["eyes"] },
-      { id: "extend_arm",     desc: "Open the water reservoir.",                                body: ["arm_right_upper","arm_right_lower"] },
-      { id: "tilt_forearm",   desc: "Pour water into the reservoir.",                           body: ["arm_right_lower","hand_right"] },
-      { id: "lower_arm",      desc: "Close the reservoir lid.",                                 body: ["arm_right_upper","arm_right_lower"] },
-      { id: "grip_fingers",   desc: "Insert a coffee pod.",                                     body: ["hand_right"] },
-      { id: "press_button",   desc: "Press brew. Heating cycle begins.",                        body: ["hand_right"] },
-      { id: "extend_arm",     desc: "Reach for the filled mug.",                                body: ["arm_right_upper","arm_right_lower"] },
-      { id: "grip_fingers",   desc: "Grip the mug handle.",                                     body: ["hand_right"] },
-      { id: "raise_arm",      desc: "Lift the mug.",                                            body: ["arm_right_upper","arm_right_lower"] },
-    ]
-  },
-
-  // 12 ────────────────────────────────────────────────────────────────────────
-  {
-    name: "Tie a shoelace",
-    flavor: "Tripping hazard detected.",
-    steps: [
-      { id: "scan_visual",      desc: "Locate the untied shoelace.",                            body: ["eyes"] },
-      { id: "bend_knees",       desc: "Bend your knees to lower toward the floor.",             body: ["leg_left","leg_right"] },
-      { id: "bend_torso",       desc: "Lean your torso forward to reach the shoe.",             body: ["torso"] },
-      { id: "grip_fingers",     desc: "Gather both lace ends in your hands.",                   body: ["hand_left","hand_right"] },
-      { id: "extend_fingers",   desc: "Cross the laces and form an initial loop.",              body: ["hand_left","hand_right"] },
-      { id: "oscillate_wrist",  desc: "Loop and thread. Form the bow.",                        body: ["hand_left","hand_right","arm_left_lower","arm_right_lower"] },
-      { id: "straighten_torso", desc: "Return upright. Test tightness.",                       body: ["torso"] },
-    ]
-  },
-
-  // 13 ────────────────────────────────────────────────────────────────────────
-  {
-    name: "Answer the phone",
-    flavor: "Incoming call detected.",
-    steps: [
-      { id: "walk_to",        desc: "Walk toward the ringing phone.",                                body: ["leg_left","leg_right","shin_left","shin_right"] },
-      { id: "scan_visual",    desc: "Locate the ringing phone.",                                body: ["eyes"] },
-      { id: "extend_arm",     desc: "Reach for the device.",                                    body: ["arm_right_upper","arm_right_lower"] },
-      { id: "grip_fingers",   desc: "Pick it up.",                                              body: ["hand_right"] },
-      { id: "raise_arm",      desc: "Bring the phone up toward your ear.",                      body: ["arm_right_upper","arm_right_lower"] },
-      { id: "press_button",   desc: "Press the answer button.",                                 body: ["hand_right"] },
-      { id: "open_mouth",     desc: "Open your mouth. Respond to the caller.",                  body: ["mouth"] },
-    ]
-  },
-
-  // 15 ────────────────────────────────────────────────────────────────────────
-  {
-    name: "Eat with a fork",
-    flavor: "Caloric intake required.",
-    steps: [
-      { id: "scan_visual",    desc: "Find the plate and your fork.",                            body: ["eyes"] },
-      { id: "extend_arm",     desc: "Reach for the fork.",                                      body: ["arm_right_upper","arm_right_lower"] },
-      { id: "grip_fingers",   desc: "Pick it up.",                                              body: ["hand_right"] },
-      { id: "raise_arm",      desc: "Position the fork above the food.",                        body: ["arm_right_upper","arm_right_lower"] },
-      { id: "extend_arm",     desc: "Lower the fork and pierce the food.",                      body: ["arm_right_lower","hand_right"] },
-      { id: "raise_arm",      desc: "Lift the loaded fork toward your mouth.",                  body: ["arm_right_upper","arm_right_lower"] },
-      { id: "open_mouth",     desc: "Open your mouth.",                                         body: ["mouth"] },
-      { id: "swallow",        desc: "Chew and swallow.",                                        body: ["throat","mouth"] },
-      { id: "lower_arm",      desc: "Return the fork to the plate.",                            body: ["arm_right_upper","arm_right_lower"] },
-    ]
-  },
-
-  // 16 ────────────────────────────────────────────────────────────────────────
-  {
-    name: "Turn off the light",
-    flavor: "Unnecessary energy expenditure detected.",
-    steps: [
-      { id: "walk_to",        desc: "Walk to the light switch.",                                     body: ["leg_left","leg_right","shin_left","shin_right"] },
-      { id: "scan_visual",    desc: "Spot the light switch on the wall.",                       body: ["eyes"] },
-      { id: "extend_arm",     desc: "Reach toward the switch.",                                 body: ["arm_right_upper","arm_right_lower"] },
-      { id: "extend_fingers", desc: "Extend your index finger toward the switch.",              body: ["hand_right"] },
-      { id: "press_button",   desc: "Press the switch down. Circuit opens.",                    body: ["hand_right"] },
-      { id: "lower_arm",      desc: "Lower your arm.",                                          body: ["arm_right_upper","arm_right_lower"] },
-    ]
-  },
-
-  // 17 ────────────────────────────────────────────────────────────────────────
-  {
-    name: "Put on a jacket",
-    flavor: "Ambient temperature is low.",
-    steps: [
-      { id: "scan_visual",    desc: "Locate the jacket.",                                       body: ["eyes"] },
-      { id: "extend_arm",     desc: "Reach for it.",                                            body: ["arm_right_upper","arm_right_lower"] },
-      { id: "grip_fingers",   desc: "Grip the jacket by the collar.",                           body: ["hand_right"] },
-      { id: "raise_arm",      desc: "Lift the jacket and hold it overhead.",                    body: ["arm_right_upper","arm_right_lower"] },
-      { id: "extend_arm",     desc: "Thread your right arm into the sleeve.",                   body: ["arm_right_upper","arm_right_lower"] },
-      { id: "rotate_torso",   desc: "Swing the jacket around onto your shoulders.",             body: ["torso"] },
-      { id: "lower_arm",      desc: "Thread your left arm in. Let the jacket settle.",          body: ["arm_left_upper","arm_left_lower"] },
-    ]
-  },
-
-  // 18 ────────────────────────────────────────────────────────────────────────
-  {
-    name: "Open a jar",
-    flavor: "Sealed container. Manual extraction required.",
-    steps: [
-      { id: "scan_visual",    desc: "Find the jar.",                                            body: ["eyes"] },
-      { id: "extend_arm",     desc: "Reach for it.",                                            body: ["arm_right_upper","arm_right_lower"] },
-      { id: "grip_fingers",   desc: "Grip the jar body with your non-dominant hand.",           body: ["hand_left"] },
-      { id: "open_hand",      desc: "Position your dominant hand over the lid.",                body: ["hand_right"] },
-      { id: "grip_fingers",   desc: "Grip the lid firmly.",                                     body: ["hand_right"] },
-      { id: "rotate_wrist",   desc: "Apply counterclockwise torque to the lid.",                body: ["arm_right_lower","hand_right"] },
-      { id: "extend_fingers", desc: "Lift and remove the loosened lid.",                        body: ["hand_right"] },
-    ]
-  },
-
-  // 19 ────────────────────────────────────────────────────────────────────────
-  {
-    name: "Blow your nose",
-    flavor: "Nasal passage obstructed.",
-    steps: [
-      { id: "walk_to",        desc: "Walk to where the tissues are.",                                body: ["leg_left","leg_right","shin_left","shin_right"] },
-      { id: "scan_visual",    desc: "Find a tissue.",                                           body: ["eyes"] },
-      { id: "extend_arm",     desc: "Reach for the tissue.",                                    body: ["arm_right_upper","arm_right_lower"] },
-      { id: "grip_fingers",   desc: "Take the tissue in hand.",                                 body: ["hand_right"] },
-      { id: "raise_arm",      desc: "Bring the tissue to your nose.",                           body: ["arm_right_upper","arm_right_lower"] },
-      { id: "seal_mouth",     desc: "Close your mouth to redirect airflow.",                    body: ["mouth"] },
-      { id: "tense_diaphragm",desc: "Exhale sharply through your nose.",                        body: ["torso"] },
-      { id: "lower_arm",      desc: "Dispose of the tissue.",                                   body: ["arm_right_upper","arm_right_lower"] },
-    ]
-  },
-
-  // 20 ────────────────────────────────────────────────────────────────────────
-  {
-    name: "Stand up from chair",
-    flavor: "Prolonged inactivity. Time to move.",
-    steps: [
-      { id: "scan_visual",      desc: "Check the space in front of you is clear.",              body: ["eyes"] },
-      { id: "extend_arm",       desc: "Place your hands on the armrests or your thighs.",       body: ["arm_left_upper","arm_right_upper","arm_left_lower","arm_right_lower"] },
-      { id: "open_hand",        desc: "Flatten your palms to push.",                            body: ["hand_left","hand_right"] },
-      { id: "bend_knees",       desc: "Lean forward slightly. Engage your legs.",               body: ["leg_left","leg_right"] },
-      { id: "straighten_torso", desc: "Push down and rise. Extend your legs.",                  body: ["torso","leg_left","leg_right"] },
-      { id: "relax_muscles",    desc: "Stand steady. Distribute your weight.",                  body: ["torso","leg_left","leg_right"] },
-    ]
-  },
-
+const MEASUREMENTS = [
+  { id: 'height',        label: 'Height',            unit: 'in',  mean: 69.0, sd: 2.5  },
+  { id: 'sittingHeight', label: 'Sitting Height',    unit: 'in',  mean: 36.0, sd: 1.5  },
+  { id: 'hipCirc',       label: 'Hip Circumference', unit: 'in',  mean: 38.0, sd: 2.0  },
+  { id: 'femurLength',   label: 'Femur Length',      unit: 'in',  mean: 17.0, sd: 1.2  },
+  { id: 'shinLength',    label: 'Shin Length',       unit: 'in',  mean: 16.0, sd: 1.0  },
+  { id: 'armSpan',       label: 'Arm Span',          unit: 'in',  mean: 70.0, sd: 3.0  },
+  { id: 'shoulderWidth', label: 'Shoulder Width',    unit: 'in',  mean: 18.0, sd: 1.0  },
+  { id: 'neckCirc',      label: 'Neck Circumference',unit: 'in',  mean: 15.0, sd: 0.8  },
+  { id: 'footLength',    label: 'Foot Length',       unit: 'in',  mean: 10.0, sd: 0.6  },
+  { id: 'chestDepth',    label: 'Chest Depth',       unit: 'in',  mean:  9.5, sd: 0.5  },
+  { id: 'aptitude',      label: 'Mental Aptitude',   unit: 'pts', mean:100.0, sd:15.0  },
 ];
 
-// ── COMMAND GROUPS ────────────────────────────────────────────────────────────
-const COMMAND_GROUPS = [
-  {
-    label: "Vision",
-    cmds: [
-      { id: "scan_visual",      label: "Scan visual field" },
-    ]
-  },
-  {
-    label: "Mouth & throat",
-    cmds: [
-      { id: "open_mouth",       label: "Open mouth" },
-      { id: "seal_mouth",       label: "Seal mouth" },
-      { id: "swallow",          label: "Swallow" },
-      { id: "spit",             label: "Spit" },
-    ]
-  },
-  {
-    label: "Arms",
-    cmds: [
-      { id: "raise_arm",        label: "Raise arm" },
-      { id: "lower_arm",        label: "Lower arm" },
-      { id: "extend_arm",       label: "Extend arm" },
-      { id: "tilt_forearm",     label: "Tilt forearm" },
-    ]
-  },
-  {
-    label: "Wrist",
-    cmds: [
-      { id: "oscillate_wrist",  label: "Oscillate wrist" },
-      { id: "rotate_wrist",     label: "Rotate wrist" },
-    ]
-  },
-  {
-    label: "Hands & fingers",
-    cmds: [
-      { id: "open_hand",        label: "Open hand" },
-      { id: "grip_fingers",     label: "Grip fingers" },
-      { id: "extend_fingers",   label: "Extend fingers" },
-    ]
-  },
-  {
-    label: "Torso",
-    cmds: [
-      { id: "rotate_torso",     label: "Rotate torso" },
-      { id: "bend_torso",       label: "Bend torso" },
-      { id: "straighten_torso", label: "Straighten torso" },
-      { id: "relax_muscles",    label: "Relax muscles" },
-      { id: "tense_diaphragm",  label: "Tense diaphragm" },
-    ]
-  },
-  {
-    label: "Legs",
-    cmds: [
-      { id: "walk_to",          label: "Walk to location" },
-      { id: "bend_knees",       label: "Bend knees" },
-      { id: "lower_body",       label: "Lower body" },
-    ]
-  },
-  {
-    label: "Interaction",
-    cmds: [
-      { id: "push_object",      label: "Push object" },
-      { id: "pull_object",      label: "Pull object" },
-      { id: "press_button",     label: "Press button" },
-    ]
-  },
-  {
-    label: "Sensory",
-    cmds: [
-      { id: "detect_stimulus",  label: "Detect nasal stimulus" },
-    ]
-  },
+// ── NAME GENERATOR — 1940s American ──────────────────────────────────────────
+
+const FIRST_NAMES = [
+  'Robert','James','John','William','Charles','George','Joseph',
+  'Richard','Donald','Thomas','Harold','Walter','Raymond','Frank',
+  'Arthur','Kenneth','Howard','Paul','Edward','Eugene','Carl',
+  'Lawrence','Albert','Henry','Ralph','Roy','Clarence','Fred',
+  'Harry','Earl','Leonard','Marvin','Dale','Herbert','Gerald',
+  'Stanley','Lloyd','Norman','Melvin','Leroy'
+];
+const LAST_NAMES = [
+  'Smith','Johnson','Williams','Brown','Jones','Miller','Davis',
+  'Wilson','Anderson','Taylor','Thomas','Jackson','White','Harris',
+  'Martin','Thompson','Clark','Lewis','Walker','Hall','Allen',
+  'Young','King','Wright','Scott','Green','Baker','Adams','Nelson',
+  'Carter','Mitchell','Roberts','Turner','Phillips','Campbell',
+  'Parker','Evans','Edwards','Collins','Reed','Murray','Hayes',
+  'Shaw','Cole','West','Boyd','Patterson','Duncan','Fleming',
+  // Italian (rare — 6 entries vs ~40 Anglo)
+  'Conti','Ferraro','Russo','Moretti','Gallo','Ricci',
+  // Spanish (rare — 6 entries)
+  'Rivera','Delgado','Castillo','Vega','Reyes','Medina',
 ];
 
-const COMMANDS = COMMAND_GROUPS.flatMap(g => g.cmds);
+function pickName() {
+  return FIRST_NAMES[rand(FIRST_NAMES.length)] + ' ' + LAST_NAMES[rand(LAST_NAMES.length)];
+}
 
-// ── BODY MAP ──────────────────────────────────────────────────────────────────
-const BODY_MAP = {
-  eyes:             ["bp-eyes", "bp-eyes2"],
-  mouth:            ["bp-mouth"],
-  throat:           ["bp-throat"],
-  head:             ["bp-head"],
-  torso:            ["bp-torso"],
-  arm_right_upper:  ["bp-arm_right_upper"],
-  arm_right_lower:  ["bp-arm_right_lower"],
-  hand_right:       ["bp-hand_right"],
-  arm_left_upper:   ["bp-arm_left_upper"],
-  arm_left_lower:   ["bp-arm_left_lower"],
-  hand_left:        ["bp-hand_left"],
-  leg_left:         ["bp-leg_left"],
-  leg_right:        ["bp-leg_right"],
-  shin_left:        ["bp-shin_left"],
-  shin_right:       ["bp-shin_right"],
-};
+// ── STATISTICS ────────────────────────────────────────────────────────────────
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
-const MISSIONS_PER_SESSION = 5;
+function gaussianRandom() {
+  let u, v;
+  do { u = Math.random(); } while (u === 0);
+  do { v = Math.random(); } while (v === 0);
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
 
-let state = {};
-
-function newState() {
+function generateCandidate(id) {
+  const zScores = {}, values = {}, fits = {};
+  for (const m of MEASUREMENTS) {
+    const z = gaussianRandom();
+    zScores[m.id] = z;
+    values[m.id]  = +(z * m.sd + m.mean).toFixed(1);
+    fits[m.id]    = Math.abs(z) < Z_THRESHOLD;
+  }
+  const outCount = MEASUREMENTS.filter(m => !fits[m.id]).length;
+  const [skinBase, skinDark] = pickSkinTone();
   return {
-    session:    sampleMissions(MISSIONS_PER_SESSION),
-    missionIdx: 0,
-    stepIdx:    0,
-    score:      0,
-    timeLeft:   90,
-    timerHandle: null,
-    ended:      false,
-    stepErrors: 0,   // wrong attempts on the current step — resets on correct
+    id, name: pickName(),
+    zScores, values, fits,
+    outCount,
+    skinBase, skinDark,
+    willCrash: outCount >= CRASH_THRESHOLD,
+    playerDecision: null,
   };
 }
 
-function sampleMissions(n) {
-  return [...MISSION_BANK].sort(() => Math.random() - 0.5).slice(0, n);
+// ── CANVAS FIGURE ─────────────────────────────────────────────────────────────
+// Logical 80×120, CSS 160×240 (2×)
+
+const OLIVE   = '#8B9457';
+const OLIVE_D = '#4A5240';
+const DARK    = '#0B1120';
+const WHITE   = '#E8DFC8';
+
+// Skin tone pairs: [base, shadow]. Ranges from pale to dark brown.
+const SKIN_TONES = [
+  ['#DCCCA0', '#B8A070'],  // pale/fair
+  ['#C8B87A', '#A0885A'],  // default tan (original)
+  ['#C0A060', '#906A38'],  // medium warm
+  ['#A07840', '#785030'],  // medium brown
+  ['#7A5030', '#502810'],  // dark brown
+  ['#5A3018', '#381808'],  // deep brown
+];
+
+function pickSkinTone() {
+  return SKIN_TONES[rand(SKIN_TONES.length)];
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-window.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("start-btn").addEventListener("click", startGame);
-  document.getElementById("restart-btn").addEventListener("click", () => {
-    document.getElementById("end-screen").classList.add("hidden");
-    startGame();
-  });
-});
-
-function startGame() {
-  state = newState();
-  document.getElementById("intro-screen").classList.add("hidden");
-  document.getElementById("game-screen").classList.remove("hidden");
-  buildControlPanel();
-  loadMission();
-  startTimer();
+function makeBodyBlocks(s, sd) {
+  return [
+    [s,    30,  3, 20, 20],   // head
+    [sd,   28,  7,  2,  8],   // L ear
+    [sd,   50,  7,  2,  8],   // R ear
+    [OLIVE,28,  2, 24,  4],   // helmet brim
+    [OLIVE,30,  0, 20,  4],   // helmet top
+    [sd,   30, 21, 20,  2],   // chin
+    [sd,   35, 23, 10,  1],   // neck
+    [OLIVE,24, 24, 32, 26],   // torso
+    [OLIVE_D,36,24,  8, 10],  // lapels
+    [OLIVE_D,24,48, 32,  4],  // belt
+    [OLIVE,26, 52, 28,  8],   // hips
+    [OLIVE,27, 60, 12, 18],   // L thigh
+    [OLIVE,41, 60, 12, 18],   // R thigh
+    [OLIVE_D,28,78, 10, 16],  // L shin
+    [OLIVE_D,42,78, 10, 16],  // R shin
+    [DARK, 25, 94, 14,  6],   // L boot
+    [DARK, 41, 94, 14,  6],   // R boot
+    [OLIVE,14, 24, 10, 18],   // L upper arm
+    [OLIVE,56, 24, 10, 18],   // R upper arm
+    [OLIVE_D,13,42,  9, 14],  // L forearm
+    [OLIVE_D,58,42,  9, 14],  // R forearm
+    [s,    13, 56,  8,  8],   // L fist
+    [s,    59, 56,  8,  8],   // R fist
+  ];
 }
 
-// ── CONTROL PANEL ─────────────────────────────────────────────────────────────
-function buildControlPanel() {
-  const grid = document.getElementById("buttons-grid");
-  grid.innerHTML = "";
-  COMMAND_GROUPS.forEach(group => {
-    const section = document.createElement("div");
-    section.className = "cmd-group";
-
-    const lbl = document.createElement("div");
-    lbl.className = "cmd-group-label";
-    lbl.textContent = group.label;
-    section.appendChild(lbl);
-
-    group.cmds.forEach(cmd => {
-      const btn = document.createElement("button");
-      btn.className = "cmd-btn";
-      btn.dataset.cmdId = cmd.id;
-      btn.textContent = cmd.label;
-      btn.addEventListener("click", () => handleCommand(cmd.id, btn));
-      section.appendChild(btn);
-    });
-
-    grid.appendChild(section);
-  });
+function drawFace(ctx, s, sd) {
+  // eye whites
+  ctx.fillStyle = WHITE;
+  ctx.fillRect(33, 9, 5, 4);
+  ctx.fillRect(42, 9, 5, 4);
+  // pupils
+  ctx.fillStyle = '#1A1A1A';
+  ctx.fillRect(35, 10, 2, 2);
+  ctx.fillRect(44, 10, 2, 2);
+  // brows
+  ctx.fillStyle = sd;
+  ctx.fillRect(33, 8, 5, 1);
+  ctx.fillRect(42, 8, 5, 1);
+  // mouth
+  ctx.fillStyle = sd;
+  ctx.fillRect(36, 17, 8, 1);
+  ctx.fillRect(35, 16, 1, 1);
+  ctx.fillRect(44, 16, 1, 1);
 }
 
-// ── MISSION LOADING ───────────────────────────────────────────────────────────
-function loadMission() {
-  const m = state.session[state.missionIdx];
-  document.getElementById("hud-directive-text").textContent = m.name;
-  document.getElementById("hud-mission-text").textContent =
-    `${state.missionIdx + 1} / ${MISSIONS_PER_SESSION}`;
+const FIGURE_ANCHORS = {
+  height:        { x1: 9,  y1: 3,   x2: 9,  y2:100, orient:'v' },
+  sittingHeight: { x1: 6,  y1:24,   x2: 6,  y2: 60, orient:'v' },
+  hipCirc:       { x1:24,  y1:56,   x2:56,  y2: 56, orient:'h' },
+  femurLength:   { x1: 6,  y1:60,   x2: 6,  y2: 78, orient:'v' },
+  shinLength:    { x1: 6,  y1:78,   x2: 6,  y2: 94, orient:'v' },
+  armSpan:       { x1:12,  y1:49,   x2:68,  y2: 49, orient:'h' },
+  shoulderWidth: { x1:24,  y1:27,   x2:56,  y2: 27, orient:'h' },
+  neckCirc:      { x1:34,  y1:23,   x2:46,  y2: 23, orient:'h' },
+  footLength:    { x1:25,  y1:101,  x2:39,  y2:101, orient:'h' },
+  chestDepth:    { x1:70,  y1:24,   x2:70,  y2: 48, orient:'v' },
+  aptitude:      { x1:30,  y1: 1,   x2:50,  y2:  1, orient:'h' },
+};
 
-  buildStepsList(m);
-  clearBodyHighlights();
-  updateStepView();
-}
+let bobOffset   = 0;
+let bobInterval = null;
+let bobCandidate = null;
+let bobRevealed  = false;
 
-function buildStepsList(mission) {
-  const list = document.getElementById("steps-list");
-  list.innerHTML = "";
-  mission.steps.forEach((step, i) => {
-    const div = document.createElement("div");
-    div.className = "step-item pending";
-    div.dataset.idx = i;
-
-    div.innerHTML = `
-      <span class="step-num">${String(i + 1).padStart(2, "0")}.</span>
-      <span class="step-body">${step.desc}</span>
-      <span class="step-check"></span>
-    `;
-    list.appendChild(div);
-  });
-}
-
-function updateStepView() {
-  const mission = state.session[state.missionIdx];
-  document.querySelectorAll(".step-item").forEach((el, i) => {
-    el.classList.remove("pending", "current", "done");
-    const chk = el.querySelector(".step-check");
-    if (i < state.stepIdx) {
-      el.classList.add("done");
-      chk.textContent = "✓";
-    } else if (i === state.stepIdx) {
-      el.classList.add("current");
-      chk.textContent = "";
+function drawAnnotations(ctx, candidate, revealed) {
+  for (const m of MEASUREMENTS) {
+    const a = FIGURE_ANCHORS[m.id];
+    if (!a) continue;
+    ctx.fillStyle = !revealed ? '#D4A017'
+                  : candidate.fits[m.id] ? '#3CB043' : '#C0392B';
+    const { x1, y1, x2, y2, orient } = a;
+    if (orient === 'v') {
+      ctx.fillRect(x1, y1, 1, y2 - y1);
+      ctx.fillRect(x1 - 2, y1, 5, 1);
+      ctx.fillRect(x1 - 2, y2, 5, 1);
     } else {
-      el.classList.add("pending");
-      chk.textContent = "";
+      ctx.fillRect(x1, y1, x2 - x1, 1);
+      ctx.fillRect(x1, y1 - 2, 1, 5);
+      ctx.fillRect(x2, y1 - 2, 1, 5);
     }
-  });
-
-  const current = document.querySelector(".step-item.current");
-  if (current) current.scrollIntoView({ block: "nearest", behavior: "smooth" });
-
-  const hint = document.getElementById("step-hint");
-  hint.textContent = state.stepIdx === 0 ? mission.flavor : "";
-
-}
-
-// ── COMMAND HANDLING ──────────────────────────────────────────────────────────
-function handleCommand(cmdId, btn) {
-  if (state.ended) return;
-
-  const mission = state.session[state.missionIdx];
-  const step    = mission.steps[state.stepIdx];
-
-  if (cmdId !== step.id) {
-    flashBtn(btn, false);
-    applyPenalty();
-    return;
-  }
-
-  document.querySelectorAll(".cmd-group").forEach(g => g.classList.remove("cmd-group--dim"));
-  flashBtn(btn, true);
-  highlightBody(step.body);
-  state.score      += 10;
-  state.stepIdx    += 1;
-  state.stepErrors  = 0;
-  state.timeLeft = Math.min(state.timeLeft + (state.stepErrors === 0 ? 10 : 7), 120);
-  updateScore();
-  updateTimer();
-  showFeedback("Done", true);
-
-  if (state.stepIdx >= mission.steps.length) {
-    setButtonsEnabled(false);
-    setTimeout(() => {
-      clearBodyHighlights();
-      state.missionIdx++;
-      state.stepIdx = 0;
-      if (state.missionIdx >= MISSIONS_PER_SESSION) {
-        endGame(true);
-      } else {
-        showFeedback("Mission complete", true);
-        setTimeout(() => {
-          loadMission();
-          setButtonsEnabled(true);
-        }, 1000);
-      }
-    }, 700);
-  } else {
-    updateStepView();
   }
 }
 
-function applyPenalty() {
-  const deduction = state.stepErrors === 0 ? 4 : 2;
-  state.stepErrors += 1;
-  // Activate dimming hint on the first mistake
-  if (state.stepErrors === 1) {
-    const step = state.session[state.missionIdx].steps[state.stepIdx];
-    document.querySelectorAll(".cmd-group").forEach(group => {
-      const hasAnswer = !!group.querySelector(`[data-cmd-id="${step.id}"]`);
-      group.classList.toggle("cmd-group--dim", !hasAnswer);
-    });
+function renderFigure(ctx, candidate, revealed) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // reset any prior transform
+  ctx.clearRect(0, 0, 160, 240);
+  ctx.fillStyle = DARK;
+  ctx.fillRect(0, 0, 160, 240);
+  ctx.scale(2, 2); // all draw calls below use 80×120 logical coords
+  ctx.save();
+  ctx.translate(0, 10 + bobOffset);
+  ctx.fillStyle = '#1E2E42';
+  ctx.fillRect(0, 105, 80, 3);
+  const blocks = makeBodyBlocks(candidate.skinBase, candidate.skinDark);
+  for (const [color, x, y, w, h] of blocks) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
   }
-  state.score    = Math.max(0, state.score - 5);
-  state.timeLeft = Math.max(0, state.timeLeft - deduction);
-  updateScore();
-  updateTimer();
-  showFeedback(`−${deduction}s`, false);
-  if (state.timeLeft <= 0) endGame(false);
+  drawFace(ctx, candidate.skinBase, candidate.skinDark);
+  drawAnnotations(ctx, candidate, revealed);
+  ctx.restore();
 }
 
-// ── BODY HIGHLIGHTING ─────────────────────────────────────────────────────────
-function highlightBody(parts) {
-  clearBodyHighlights();
-  parts.forEach(key => {
-    (BODY_MAP[key] || []).forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.classList.add("active");
-    });
-  });
-  setTimeout(clearBodyHighlights, 900);
-}
-
-function clearBodyHighlights() {
-  Object.values(BODY_MAP).flat().forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.remove("active");
-  });
-}
-
-// ── UI HELPERS ────────────────────────────────────────────────────────────────
-
-function flashBtn(btn, good) {
-  const cls = good ? "flash-good" : "flash-bad";
-  btn.classList.add(cls);
-  setTimeout(() => btn.classList.remove(cls), 380);
-}
-
-function showFeedback(msg, good) {
-  const fb = document.getElementById("feedback");
-  fb.textContent = msg;
-  fb.className = good ? "fb-good" : "fb-bad";
-  fb.classList.remove("hidden");
-  fb.style.animation = "none";
-  fb.offsetHeight; // reflow
-  fb.style.animation = "";
-  clearTimeout(fb._hide);
-  fb._hide = setTimeout(() => fb.classList.add("hidden"), 950);
-}
-
-function setButtonsEnabled(on) {
-  document.querySelectorAll(".cmd-btn").forEach(b => (b.disabled = !on));
-  if (!on) {
-    document.querySelectorAll(".cmd-group").forEach(g => g.classList.remove("cmd-group--dim"));
-  }
-}
-
-function updateScore() {
-  document.getElementById("hud-score-text").textContent = state.score;
-}
-
-function updateTimer() {
-  const el = document.getElementById("hud-timer-text");
-  el.textContent = Math.max(0, state.timeLeft);
-  el.className = state.timeLeft <= 10 ? "urgent" : "";
-}
-
-// ── TIMER ─────────────────────────────────────────────────────────────────────
-function startTimer() {
-  updateTimer();
-  state.timerHandle = setInterval(() => {
-    state.timeLeft--;
-    updateTimer();
-    if (state.timeLeft <= 0) endGame(false);
+function startBob(candidate, revealed) {
+  if (bobInterval) clearInterval(bobInterval);
+  bobCandidate = candidate;
+  bobRevealed  = revealed;
+  bobOffset    = 0;
+  bobInterval  = setInterval(() => {
+    bobOffset = bobOffset === 0 ? -2 : 0;
+    renderFigure(ctx, bobCandidate, bobRevealed);
   }, 1000);
 }
 
-// ── END GAME ──────────────────────────────────────────────────────────────────
-function endGame(allComplete) {
-  if (state.ended) return;
-  state.ended = true;
-  clearInterval(state.timerHandle);
-
-  document.getElementById("game-screen").classList.add("hidden");
-  document.getElementById("end-screen").classList.remove("hidden");
-
-  document.getElementById("end-title").textContent =
-    allComplete ? "All directives complete" : "Time's up";
-
-  document.getElementById("end-message").textContent = allComplete
-    ? "Every directive translated and executed. The mind spoke; the body obeyed."
-    : `${state.missionIdx} of ${MISSIONS_PER_SESSION} directives completed before the clock ran out.`;
-
-  document.getElementById("end-score-text").textContent = state.score;
+function stopBob() {
+  if (bobInterval) { clearInterval(bobInterval); bobInterval = null; }
 }
+
+// ── CRASH / FLY-PAST ANIMATION ────────────────────────────────────────────────
+// Crash canvas: 400×160 logical, CSS 600×240
+
+const crashCanvas  = document.getElementById('crash-canvas');
+const crashCtx     = crashCanvas.getContext('2d');
+const crashOverlay = document.getElementById('crash-overlay');
+const crashCaption = document.getElementById('crash-caption');
+const crashSub     = document.getElementById('crash-sub');
+
+// Pixel art P-51 Mustang sprite, 20×8 pixels
+// Drawn relative to (x, y) = nose-left tip
+function drawPlane(ctx, px, py, angle) {
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.rotate(angle);
+
+  const body    = '#C0C0A8'; // silver fuselage
+  const dark    = '#3A3A2A';
+  const cockpit = '#5AEEFF'; // cyan canopy
+  const prop    = '#8B7A5A';
+
+  // fuselage body
+  ctx.fillStyle = body;
+  ctx.fillRect(0,  2, 20,  4); // main fuselage
+  ctx.fillRect(2,  1, 14,  6); // slightly thicker middle
+
+  // tail fins
+  ctx.fillStyle = body;
+  ctx.fillRect(14, -1,  4,  2); // top fin
+  ctx.fillRect(14,  7,  4,  2); // bottom fin
+
+  // wings (horizontal span across middle)
+  ctx.fillStyle = body;
+  ctx.fillRect(5, -3, 10,  2); // top wing
+  ctx.fillRect(5,  9, 10,  2); // bottom wing
+
+  // cockpit canopy
+  ctx.fillStyle = cockpit;
+  ctx.fillRect(6,  1,  5,  3);
+
+  // nose / propeller hub
+  ctx.fillStyle = dark;
+  ctx.fillRect(0,  3,  2,  2);
+
+  // propeller blades (vertical)
+  ctx.fillStyle = prop;
+  ctx.fillRect(-1,  0,  1,  8); // blade span
+
+  ctx.restore();
+}
+
+function runFlightAnimation(pilotName, willCrash, onDone) {
+  crashOverlay.classList.remove('hidden');
+  crashSub.textContent = '';
+
+  const W = 400, H = 160;
+  const startX = -24, startY = 70;
+
+  let x = startX, y = startY;
+  let angle = 0;
+  let phase = 'fly'; // 'fly' | 'dive' | 'explode'
+  let explodeFrame = 0;
+  let explodeX = 0, explodeY = 0;
+  let frameId = null;
+  let diveGravity = 0;
+
+  // For safe: just fly across. For crash: start dive at center.
+  const diveStartX = W / 2;
+
+  function clearCrash() {
+    crashCtx.fillStyle = '#07090E';
+    crashCtx.fillRect(0, 0, W, H);
+    // ground line
+    crashCtx.fillStyle = '#2A3F28';
+    crashCtx.fillRect(0, H - 12, W, 12);
+    crashCtx.fillStyle = '#1E2E18';
+    crashCtx.fillRect(0, H - 14, W, 2);
+  }
+
+  function drawExplosion(ex, ey, frame) {
+    // frame 0: small burst
+    // frame 1: medium burst
+    // frame 2: large fading burst
+    const sizes  = [4, 8, 12];
+    const colors = ['#FF8C00','#FF4500','#C0392B'];
+    const sparks = [
+      [0, -1], [1, -1], [-1, -1],
+      [1, 0],  [-1, 0],
+      [0,  1], [1,  1], [-1,  1],
+    ];
+    const r = sizes[frame];
+    crashCtx.fillStyle = colors[frame];
+    crashCtx.fillRect(ex - r, ey - r, r * 2, r * 2);
+    if (frame < 2) {
+      crashCtx.fillStyle = '#FFD700';
+      for (const [dx, dy] of sparks) {
+        crashCtx.fillRect(ex + dx * (r + 2), ey + dy * (r + 2), 2, 2);
+      }
+    }
+    // smoke
+    if (frame === 2) {
+      crashCtx.fillStyle = '#3A3A3A';
+      crashCtx.fillRect(ex - 8, ey - 16, 16, 12);
+    }
+  }
+
+  function tick() {
+    clearCrash();
+
+    if (phase === 'fly') {
+      x += 3;
+      if (willCrash && x >= diveStartX) {
+        phase = 'dive';
+        explodeX = x;
+      }
+      if (!willCrash && x > W + 30) {
+        // safe exit
+        crashCaption.style.color = 'var(--green)';
+        crashCaption.textContent = '✓ CLEARED FOR TAKEOFF';
+        crashSub.textContent     = pilotName + ' — MISSION ASSIGNED';
+        setTimeout(() => {
+          crashOverlay.classList.add('hidden');
+          onDone();
+        }, 900);
+        return;
+      }
+      drawPlane(crashCtx, x, y, angle);
+      frameId = requestAnimationFrame(tick);
+
+    } else if (phase === 'dive') {
+      x += 2.5;
+      diveGravity += 0.4;
+      y += diveGravity;
+      angle = Math.min(Math.PI / 2.5, diveGravity * 0.12);
+      explodeX = x;
+      explodeY = y;
+      if (y > H - 16) {
+        phase = 'explode';
+        explodeX = x;
+        explodeY = H - 14;
+        crashCaption.style.color = 'var(--red)';
+        crashCaption.textContent = pilotName.toUpperCase() + ' HAS BEEN LOST.';
+        crashSub.textContent     = 'AIRCRAFT DOWN — CAUSE OF LOSS: COCKPIT MISFIT';
+        runExplodeSequence(explodeX, explodeY, onDone);
+        return;
+      }
+      drawPlane(crashCtx, x, y, angle);
+      frameId = requestAnimationFrame(tick);
+    }
+  }
+
+  frameId = requestAnimationFrame(tick);
+}
+
+function runExplodeSequence(ex, ey, onDone) {
+  const W = 400, H = 160;
+
+  function frame(i) {
+    // re-draw background each time
+    crashCtx.fillStyle = '#07090E';
+    crashCtx.fillRect(0, 0, W, H);
+    crashCtx.fillStyle = '#2A3F28';
+    crashCtx.fillRect(0, H - 12, W, 12);
+    crashCtx.fillStyle = '#1E2E18';
+    crashCtx.fillRect(0, H - 14, W, 2);
+
+    if (i === 0) {
+      crashCtx.fillStyle = '#FF8C00';
+      crashCtx.fillRect(ex - 4, ey - 4, 8, 8);
+      crashCtx.fillStyle = '#FFD700';
+      crashCtx.fillRect(ex - 1, ey - 6, 2, 3);
+      crashCtx.fillRect(ex + 3, ey - 5, 2, 2);
+      crashCtx.fillRect(ex - 5, ey - 4, 2, 2);
+    } else if (i === 1) {
+      crashCtx.fillStyle = '#FF4500';
+      crashCtx.fillRect(ex - 10, ey - 10, 20, 20);
+      crashCtx.fillStyle = '#FF8C00';
+      crashCtx.fillRect(ex - 6, ey - 14, 12, 6);
+      crashCtx.fillRect(ex + 8, ey - 8, 5, 5);
+      crashCtx.fillRect(ex - 14, ey - 6, 5, 5);
+      crashCtx.fillStyle = '#FFD700';
+      crashCtx.fillRect(ex - 2, ey - 16, 4, 3);
+      // debris
+      crashCtx.fillStyle = '#C0C0A8';
+      crashCtx.fillRect(ex - 16, ey - 4, 4, 2);
+      crashCtx.fillRect(ex + 12, ey - 8, 3, 2);
+    } else {
+      crashCtx.fillStyle = '#C0392B';
+      crashCtx.fillRect(ex - 14, ey - 12, 28, 24);
+      crashCtx.fillStyle = '#3A3A3A';
+      crashCtx.fillRect(ex - 10, ey - 24, 20, 14);
+      crashCtx.fillRect(ex - 6,  ey - 32, 12, 10);
+      crashCtx.fillStyle = '#FF4500';
+      crashCtx.fillRect(ex - 4, ey - 14, 8, 4);
+      // debris spread
+      crashCtx.fillStyle = '#888';
+      crashCtx.fillRect(ex - 22, ey - 2, 3, 2);
+      crashCtx.fillRect(ex + 18, ey - 4, 4, 2);
+      crashCtx.fillRect(ex - 2, ey + 6, 4, 2);
+    }
+  }
+
+  frame(0);
+  setTimeout(() => { frame(1); }, 180);
+  setTimeout(() => { frame(2); }, 400);
+  setTimeout(() => {
+    crashOverlay.classList.add('hidden');
+    onDone();
+  }, 2000);
+}
+
+// ── GAME STATE ────────────────────────────────────────────────────────────────
+
+const state = {
+  screen:       'briefing',
+  subState:     'idle',
+  candidateNum: 0,     // always incrementing counter
+  current:      null,  // current Candidate object
+  deaths:       0,
+  totalAccepted: 0,
+  safeFlights:  0,
+};
+
+// ── DOM REFERENCES ────────────────────────────────────────────────────────────
+
+const screens = {
+  briefing:    document.getElementById('screen-briefing'),
+  recruitment: document.getElementById('screen-recruitment'),
+  debrief:     document.getElementById('screen-debrief'),
+};
+
+const canvas  = document.getElementById('figure-canvas');
+const ctx     = canvas.getContext('2d');
+
+const elName      = document.getElementById('candidate-name');
+const elNum       = document.getElementById('candidate-num');
+const elSeen      = document.getElementById('hud-seen');
+const elRecruited = document.getElementById('hud-recruited');
+const elSafe      = document.getElementById('hud-safe');
+const elDeaths    = document.getElementById('hud-deaths');
+const elBtnAccept = document.getElementById('btn-accept');
+const elBtnReject = document.getElementById('btn-reject');
+const elBtnNext   = document.getElementById('btn-next');
+const elVerdict   = document.getElementById('verdict-stamp');
+const elBars      = document.getElementById('measurement-bars');
+const elDebriefTitle   = document.getElementById('debrief-title');
+const elDebriefStats   = document.getElementById('debrief-stats');
+const elDebriefMessage = document.getElementById('debrief-message');
+
+// ── SCREEN MANAGEMENT ─────────────────────────────────────────────────────────
+
+function setScreen(name) {
+  for (const [key, el] of Object.entries(screens)) {
+    el.classList.toggle('active', key === name);
+  }
+  state.screen = name;
+}
+
+// ── HUD ───────────────────────────────────────────────────────────────────────
+
+function updateHUD() {
+  elSeen.textContent      = state.candidateNum;
+  elRecruited.textContent = state.totalAccepted;
+  elSafe.textContent      = state.safeFlights;
+  elDeaths.textContent    = state.deaths + ' / ' + MAX_DEATHS;
+}
+
+// ── MEASUREMENT TABLE ─────────────────────────────────────────────────────────
+
+function buildTable(candidate, revealed) {
+  elBars.innerHTML = '';
+  for (const m of MEASUREMENTS) {
+    const z    = candidate.zScores[m.id];
+    const val  = candidate.values[m.id];
+    const fits = candidate.fits[m.id];
+    const pct  = zToPercent(z).toFixed(1);
+    const pipCls    = revealed ? (fits ? 'in-zone' : 'out-zone') : 'unknown';
+    const statusCls = revealed ? (fits ? 'ok' : 'bad')           : 'pending';
+    const statusTxt = revealed ? (fits ? '✓ OK' : '✗ OUT')       : '&nbsp;';
+
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML =
+      `<span class="bar-label">${m.label}</span>` +
+      `<div class="bar-track"><div class="bar-pip ${pipCls}" style="left:${pct}%"></div></div>` +
+      `<span class="bar-value">${val} ${m.unit}</span>` +
+      `<span class="bar-status ${statusCls}">${statusTxt}</span>`;
+    elBars.appendChild(row);
+  }
+}
+
+// ── RENDER CANDIDATE ─────────────────────────────────────────────────────────
+
+function renderCurrent() {
+  state.candidateNum++;
+  state.current = generateCandidate(state.candidateNum);
+  const c = state.current;
+
+  elName.textContent = c.name.toUpperCase();
+  elNum.textContent  = 'CANDIDATE #' + c.id;
+  elVerdict.className   = '';
+  elVerdict.textContent = '';
+
+  buildTable(c, false);
+  renderFigure(ctx, c, false);
+  startBob(c, false);
+
+  elBtnAccept.classList.remove('hidden');
+  elBtnReject.classList.remove('hidden');
+  elBtnNext.classList.add('hidden');
+  elBtnAccept.disabled = false;
+  elBtnReject.disabled = false;
+  state.subState = 'idle';
+  updateHUD();
+}
+
+// ── DEBRIEF / COURT-MARTIAL ───────────────────────────────────────────────────
+
+function showCourtMartial() {
+  stopBob();
+  setScreen('debrief');
+
+  elDebriefStats.innerHTML =
+    `<div class="stat-row"><span class="stat-lbl">Candidates Processed</span><span class="stat-val">${state.candidateNum}</span></div>` +
+    `<div class="stat-row"><span class="stat-lbl">Pilots Accepted</span><span class="stat-val">${state.totalAccepted}</span></div>` +
+    `<div class="stat-row"><span class="stat-lbl">Safe Flights</span><span class="stat-val">${state.safeFlights}</span></div>` +
+    `<div class="stat-row"><span class="stat-lbl">Crashes Caused</span><span class="stat-val danger">${state.deaths}</span></div>`;
+
+  elDebriefMessage.innerHTML =
+    `<p>MEMORANDUM — FOR THE RECORD</p>` +
+    `<p style="margin-top:10px">The above-named clerk is hereby relieved of all screening duties, effective immediately, and remanded to disciplinary review.</p>` +
+    `<p style="margin-top:10px">Despite access to full physical dossiers, this clerk approved <strong>${state.deaths}</strong> candidate${state.deaths !== 1 ? 's' : ''} whose measurements rendered them unfit for the P-51 Mustang cockpit. Each resulted in a fatal aircraft loss.</p>` +
+    `<p style="margin-top:10px">It is the finding of this office that the clerk failed to recognise a fundamental truth: <em>no individual is average across many dimensions simultaneously.</em> The cockpit was built for an abstraction. Nearly every man who walks through that door will deviate from specification on at least one measurement — but only those who deviate on two or more cannot fly safely.</p>` +
+    `<p style="margin-top:10px;color:#8B9457;font-size:0.74rem">— Col. R.A. Hammond, USAAF Procurement</p>`;
+}
+
+// ── STATE MACHINE ─────────────────────────────────────────────────────────────
+
+function transition(action) {
+
+  if (state.screen === 'briefing' && action === 'START') {
+    state.deaths       = 0;
+    state.totalAccepted = 0;
+    state.safeFlights  = 0;
+    state.candidateNum = 0;
+    setScreen('recruitment');
+    renderCurrent();
+    return;
+  }
+
+  if (state.screen === 'recruitment' && state.subState === 'idle') {
+    if (action !== 'ACCEPT' && action !== 'REJECT') return;
+
+    const c = state.current;
+    c.playerDecision = action.toLowerCase();
+    state.subState = 'revealing';
+
+    // Reveal bars
+    buildTable(c, true);
+    bobRevealed = true;
+    renderFigure(ctx, c, true);
+
+    if (action === 'REJECT') {
+      // Just stamp rejected, show next
+      elVerdict.className   = 'stamp-rejected';
+      elVerdict.textContent = 'REJECTED';
+      elBtnAccept.classList.add('hidden');
+      elBtnReject.classList.add('hidden');
+      elBtnNext.classList.remove('hidden');
+      updateHUD();
+      return;
+    }
+
+    // ACCEPT path
+    state.totalAccepted++;
+    elBtnAccept.classList.add('hidden');
+    elBtnReject.classList.add('hidden');
+
+    if (c.willCrash) {
+      elVerdict.className   = 'stamp-crash';
+      elVerdict.textContent = 'ACCEPTED ✗';
+    } else {
+      elVerdict.className   = 'stamp-accepted';
+      elVerdict.textContent = 'ACCEPTED ✓';
+    }
+    updateHUD();
+
+    // Run flight animation
+    runFlightAnimation(c.name, c.willCrash, () => {
+      if (c.willCrash) {
+        state.deaths++;
+        updateHUD();
+        if (state.deaths >= MAX_DEATHS) {
+          showCourtMartial();
+          return;
+        }
+      } else {
+        state.safeFlights++;
+        updateHUD();
+      }
+      // Next candidate
+      renderCurrent();
+    });
+    return;
+  }
+
+  if (state.screen === 'recruitment' && state.subState === 'revealing') {
+    if (action !== 'NEXT') return;
+    renderCurrent();
+    return;
+  }
+
+  if (state.screen === 'debrief' && action === 'RESTART') {
+    setScreen('briefing');
+    return;
+  }
+}
+
+// ── BUTTON WIRING ─────────────────────────────────────────────────────────────
+
+document.getElementById('btn-start').addEventListener('click',   () => transition('START'));
+elBtnAccept.addEventListener('click',                             () => transition('ACCEPT'));
+elBtnReject.addEventListener('click',                             () => transition('REJECT'));
+elBtnNext.addEventListener('click',                               () => transition('NEXT'));
+document.getElementById('btn-restart').addEventListener('click',  () => transition('RESTART'));
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+
+setScreen('briefing');
