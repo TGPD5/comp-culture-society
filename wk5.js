@@ -173,7 +173,7 @@ function pushChunk(bub, cur, text) {
 
 // ── streaming fetch ───────────────────────────────────────────────────────────
 async function* streamChat(system, messages, signal) {
-  const res = await fetch('/api/chat', {
+  const res = await fetch('https://comp-culture-society-production.up.railway.app/api/chat', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ system, messages }),
