@@ -1,124 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Synthetic Dialogue</title>
-  <link rel="stylesheet" href="wk5.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Augmented — A Game of Compounding Discovery</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+<div id="app">
 
-  <!-- INTRO SCREEN -->
-  <div id="screen-intro" class="screen active">
-    <div class="intro-wrap">
-
-      <header class="intro-header">
-        <div class="intro-badge"><span class="badge-dot"></span>AI vs AI · Live</div>
-        <h1 class="intro-title">Synthetic <span>Dialogue</span></h1>
-        <p class="intro-sub">Choose a scenario. Enter a topic. Watch two AI minds debate in real time.</p>
-      </header>
-
-      <div class="mode-grid">
-
-        <button class="mode-card" data-mode="friendly">
-          <div class="mode-stripe"></div>
-          <div class="mode-card-body">
-            <div class="mode-name">Friendly Debate</div>
-            <div class="mode-tagline">Two minds, one question</div>
-            <div class="mode-vs-row">
-              <span class="mv-a">Defender</span>
-              <span class="mv-sep">vs</span>
-              <span class="mv-b">Challenger</span>
-            </div>
-          </div>
-        </button>
-
-        <button class="mode-card" data-mode="presidential">
-          <div class="mode-stripe"></div>
-          <div class="mode-card-body">
-            <div class="mode-name">Presidential Debate</div>
-            <div class="mode-tagline">The race for the highest office</div>
-            <div class="mode-vs-row">
-              <span class="mv-a">Incumbent</span>
-              <span class="mv-sep">vs</span>
-              <span class="mv-b">Challenger</span>
-            </div>
-          </div>
-        </button>
-
-        <button class="mode-card" data-mode="academic">
-          <div class="mode-stripe"></div>
-          <div class="mode-card-body">
-            <div class="mode-name">Academic Debate</div>
-            <div class="mode-tagline">The arena of ideas</div>
-            <div class="mode-vs-row">
-              <span class="mv-a">Prof. Chen</span>
-              <span class="mv-sep">vs</span>
-              <span class="mv-b">Prof. Hayes</span>
-            </div>
-          </div>
-        </button>
-
-        <button class="mode-card" data-mode="lab">
-          <div class="mode-stripe"></div>
-          <div class="mode-card-body">
-            <div class="mode-name">Lab Argument</div>
-            <div class="mode-tagline">Science in progress</div>
-            <div class="mode-vs-row">
-              <span class="mv-a">Dr. Reyes</span>
-              <span class="mv-sep">vs</span>
-              <span class="mv-b">Dr. Park</span>
-            </div>
-          </div>
-        </button>
-
+  <!-- Header -->
+  <header id="header">
+    <h1>Augmented</h1>
+    <span class="era-badge" id="era-name">Stone Age</span>
+    <div class="currency-display">
+      <div class="currency-item">
+        <span class="icon">⚡</span>
+        <span class="val" id="energy-val">50</span>
+        <span class="label">energy</span>
       </div>
-
-      <div id="topic-section" class="hidden">
-        <p id="mode-desc" class="mode-desc-text"></p>
-        <div class="intro-form">
-          <input id="topic-input" type="text" maxlength="200" autocomplete="off" spellcheck="false">
-          <button id="btn-start">Start dialogue →</button>
-        </div>
-        <div class="intro-examples">
-          <span class="example-label">Try:</span>
-          <div id="example-btns"></div>
-        </div>
+      <div class="currency-item">
+        <span class="icon">💰</span>
+        <span class="val" id="money-val">0</span>
+        <span class="label">money</span>
       </div>
-
     </div>
-  </div>
+    <div id="passive-display" style="font-size:0.65rem;color:#444466;margin-left:8px"></div>
+  </header>
 
-  <!-- DIALOGUE SCREEN -->
-  <div id="screen-dialogue" class="screen">
+  <!-- Left: Inventory -->
+  <aside id="panel-inventory">
+    <h2>Inventory</h2>
+    <div id="inv-list"></div>
+  </aside>
 
-    <div id="dialogue-header">
-      <div class="agent-label" id="label-a">
-        <span class="agent-dot dot-a"></span>
-        <span class="agent-name">Voice A</span>
-        <span class="agent-stance">Defender</span>
+  <!-- Center -->
+  <main id="panel-center">
+    <div id="workshop">
+      <h2>Workshop — Combine</h2>
+      <div id="combine-area">
+        <div class="combine-slot" id="slot-0" onclick="clearSlot(0)">Click item</div>
+        <div class="combine-plus">+</div>
+        <div class="combine-slot" id="slot-1" onclick="clearSlot(1)">Click item</div>
+        <div class="combine-arrow">→</div>
+        <button id="btn-combine" onclick="doCombine()" disabled>Combine</button>
       </div>
-      <div id="topic-display"></div>
-      <div class="agent-label" id="label-b">
-        <span class="agent-stance">Challenger</span>
-        <span class="agent-name">Voice B</span>
-        <span class="agent-dot dot-b"></span>
+      <div id="combine-hint" style="font-size:0.72rem;margin-bottom:14px;min-height:16px"></div>
+
+      <div id="research-area">
+        <h2>Research</h2>
+        <div class="research-cards" id="research-cards"></div>
       </div>
     </div>
 
-    <div id="transcript"></div>
+    <!-- Log -->
+    <div id="log-area"></div>
+  </main>
 
-    <div id="dialogue-footer">
-      <div id="status-bar">
-        <span id="status-text">Initialising…</span>
-        <span id="turn-counter"></span>
-      </div>
-      <button id="btn-stop" class="hidden">Stop</button>
-      <button id="btn-restart" class="hidden">New topic</button>
+  <!-- Right: tech tree + deploy -->
+  <aside id="panel-right">
+    <div>
+      <h2>Discovered</h2>
+      <div id="tech-list"></div>
     </div>
+    <div>
+      <h2>Deploy</h2>
+      <div id="deploy-list"></div>
+    </div>
+  </aside>
 
-  </div>
+</div>
 
-  <script src="wk5.js"></script>
+<div id="tooltip"></div>
+<script src="game.js"></script>
 </body>
 </html>

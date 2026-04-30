@@ -1,0 +1,432 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Courier New', monospace;
+  background: #0a0a0f;
+  color: #c8c8d4;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: 220px 1fr 260px;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+  gap: 0;
+}
+
+/* ── Header ── */
+#header {
+  grid-column: 1 / -1;
+  background: #12121a;
+  border-bottom: 1px solid #2a2a3a;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+#header h1 {
+  font-size: 1.1rem;
+  color: #8a8aff;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.era-badge {
+  background: #1e1e30;
+  border: 1px solid #3a3a5a;
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  color: #9999cc;
+}
+
+.currency-display {
+  margin-left: auto;
+  display: flex;
+  gap: 18px;
+}
+
+.currency-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+
+.currency-item .icon { font-size: 1rem; }
+.currency-item .val { color: #e8e8ff; font-weight: bold; }
+.currency-item .label { color: #666688; font-size: 0.7rem; }
+
+/* ── Left Panel: Inventory ── */
+#panel-inventory {
+  background: #0e0e18;
+  border-right: 1px solid #1e1e30;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+#panel-inventory h2 {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #555577;
+  margin-bottom: 10px;
+}
+
+.inv-item {
+  background: #141420;
+  border: 1px solid #2a2a40;
+  border-radius: 4px;
+  padding: 7px 9px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+
+.inv-item:hover {
+  border-color: #5555aa;
+  background: #1a1a2e;
+}
+
+.inv-item.selected {
+  border-color: #8888ff;
+  background: #1e1e38;
+}
+
+.inv-item .item-name {
+  font-size: 0.82rem;
+  color: #ccccee;
+}
+
+.inv-item .item-tier {
+  font-size: 0.65rem;
+  color: #555577;
+  margin-top: 2px;
+}
+
+.inv-item .item-count {
+  position: absolute;
+  right: 8px;
+  top: 7px;
+  font-size: 0.7rem;
+  color: #7777aa;
+}
+
+/* ── Center Panel ── */
+#panel-center {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#workshop {
+  flex: 1;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+#workshop h2 {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #555577;
+  margin-bottom: 14px;
+}
+
+/* combine slots */
+#combine-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.combine-slot {
+  width: 88px;
+  height: 70px;
+  border: 1px dashed #3a3a5a;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: #111122;
+  transition: border-color 0.15s;
+  font-size: 0.72rem;
+  color: #444466;
+  text-align: center;
+  padding: 4px;
+  gap: 3px;
+}
+
+.combine-slot.filled {
+  border-color: #5555aa;
+  background: #161628;
+  color: #aaaacc;
+}
+
+.combine-slot .slot-icon { font-size: 1.4rem; }
+.combine-slot .slot-name { font-size: 0.65rem; }
+
+.combine-plus {
+  font-size: 1.4rem;
+  color: #333355;
+}
+
+.combine-arrow {
+  font-size: 1.2rem;
+  color: #333355;
+}
+
+#btn-combine {
+  background: #222240;
+  border: 1px solid #4444aa;
+  color: #9999ff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  letter-spacing: 1px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+#btn-combine:hover:not(:disabled) {
+  background: #2a2a55;
+  border-color: #7777cc;
+}
+
+#btn-combine:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Research section */
+#research-area {
+  border-top: 1px solid #1e1e30;
+  padding-top: 16px;
+  margin-top: 4px;
+}
+
+#research-area h2 {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #555577;
+  margin-bottom: 12px;
+}
+
+.research-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.research-card {
+  background: #111122;
+  border: 1px solid #2a2a3a;
+  border-radius: 5px;
+  padding: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.research-card:hover:not(.locked) {
+  border-color: #5555aa;
+  background: #161628;
+}
+
+.research-card.locked {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.research-card .rc-name {
+  font-size: 0.8rem;
+  color: #ccccee;
+  margin-bottom: 4px;
+}
+
+.research-card .rc-desc {
+  font-size: 0.65rem;
+  color: #555577;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.research-card .rc-cost {
+  font-size: 0.68rem;
+  color: #8888aa;
+}
+
+.research-card .rc-chance {
+  font-size: 0.65rem;
+  color: #666688;
+  margin-top: 2px;
+}
+
+.research-card.in-progress {
+  border-color: #aaaa44;
+  background: #1a1a10;
+}
+
+.progress-bar {
+  height: 3px;
+  background: #2a2a2a;
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #aaaa44;
+  transition: width 0.3s;
+}
+
+/* ── Log ── */
+#log-area {
+  border-top: 1px solid #1a1a28;
+  background: #0a0a12;
+  padding: 8px 14px;
+  height: 120px;
+  overflow-y: auto;
+  font-size: 0.72rem;
+}
+
+.log-entry {
+  padding: 2px 0;
+  color: #555577;
+  border-bottom: 1px solid #111122;
+}
+
+.log-entry.success { color: #66aa66; }
+.log-entry.fail    { color: #aa6666; }
+.log-entry.info    { color: #6688aa; }
+.log-entry.discovery { color: #aaaa55; }
+.log-entry.serendipity { color: #aa77cc; }
+
+/* ── Right Panel: Tech Tree / Deploy ── */
+#panel-right {
+  background: #0e0e18;
+  border-left: 1px solid #1e1e30;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#panel-right h2 {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #555577;
+  margin-bottom: 6px;
+}
+
+.tech-node {
+  background: #111122;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 0.75rem;
+}
+
+.tech-node.unlocked {
+  border-color: #336633;
+  background: #0e1a0e;
+  color: #88cc88;
+}
+
+.tech-node .tn-name { color: #aaaacc; font-size: 0.78rem; }
+.tech-node .tn-effect { color: #555577; font-size: 0.65rem; margin-top: 3px; }
+
+/* Deploy section */
+.deploy-item {
+  background: #111122;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+.deploy-item .di-name { font-size: 0.78rem; color: #aaaacc; }
+.deploy-item .di-desc { font-size: 0.64rem; color: #555577; margin: 3px 0 6px; }
+
+.btn-deploy {
+  background: #1a2a1a;
+  border: 1px solid #336633;
+  color: #66aa66;
+  padding: 4px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.7rem;
+  transition: background 0.12s;
+}
+
+.btn-deploy:hover { background: #223322; }
+.btn-deploy:disabled { opacity: 0.3; cursor: default; }
+
+/* passive income ticker */
+#passive-display {
+  font-size: 0.65rem;
+  color: #444466;
+  margin-top: -6px;
+}
+
+/* tooltip */
+#tooltip {
+  position: fixed;
+  background: #1a1a2e;
+  border: 1px solid #4444aa;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 0.72rem;
+  color: #ccccee;
+  pointer-events: none;
+  display: none;
+  z-index: 100;
+  max-width: 200px;
+  line-height: 1.5;
+}
+
+/* notification flash */
+.notif {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #222240;
+  border: 1px solid #6666cc;
+  color: #ccccff;
+  padding: 10px 22px;
+  border-radius: 5px;
+  font-size: 0.82rem;
+  z-index: 200;
+  animation: fadeNotif 2.5s forwards;
+  text-align: center;
+}
+
+.notif.good { border-color: #44aa44; background: #0e1e0e; color: #88dd88; }
+.notif.bad  { border-color: #aa4444; background: #1e0e0e; color: #dd8888; }
+
+@keyframes fadeNotif {
+  0%   { opacity: 0; top: 55px; }
+  15%  { opacity: 1; top: 65px; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a2a40; border-radius: 3px; }
