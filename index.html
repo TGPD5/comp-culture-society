@@ -3,75 +3,59 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Augmented — A Game of Compounding Discovery</title>
+  <title>WikiGraph — Six Degrees of Wikipedia</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div id="app">
+  <div id="ui">
+    <div id="topbar">
+      <h1>WikiGraph</h1>
 
-  <!-- Header -->
-  <header id="header">
-    <h1>Augmented</h1>
-    <span class="era-badge" id="era-name">Stone Age</span>
-    <div class="currency-display">
-      <div class="currency-item">
-        <span class="icon">⚡</span>
-        <span class="val" id="energy-val">50</span>
-        <span class="label">energy</span>
+      <div class="inputs">
+        <div class="input-group">
+          <label>From</label>
+          <input id="source" type="text" placeholder="e.g. ARPANET" value="ARPANET" autocomplete="off" />
+          <div class="suggestions" id="source-suggestions"></div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="input-group">
+          <label>To</label>
+          <input id="target" type="text" placeholder="e.g. Facebook" value="Facebook" autocomplete="off" />
+          <div class="suggestions" id="target-suggestions"></div>
+        </div>
+        <button id="start-btn">Explore</button>
       </div>
-      <div class="currency-item">
-        <span class="icon">💰</span>
-        <span class="val" id="money-val">0</span>
-        <span class="label">money</span>
-      </div>
-    </div>
-    <div id="passive-display" style="font-size:0.65rem;color:#444466;margin-left:8px"></div>
-  </header>
 
-  <!-- Left: Inventory -->
-  <aside id="panel-inventory">
-    <h2>Inventory</h2>
-    <div id="inv-list"></div>
-  </aside>
-
-  <!-- Center -->
-  <main id="panel-center">
-    <div id="workshop">
-      <h2>Workshop — Combine</h2>
-      <div id="combine-area">
-        <div class="combine-slot" id="slot-0" onclick="clearSlot(0)">Click item</div>
-        <div class="combine-plus">+</div>
-        <div class="combine-slot" id="slot-1" onclick="clearSlot(1)">Click item</div>
-        <div class="combine-arrow">→</div>
-        <button id="btn-combine" onclick="doCombine()" disabled>Combine</button>
+      <div id="stats" class="hidden">
+        <div class="stat"><span id="stat-nodes">0</span><small>nodes</small></div>
+        <div class="stat"><span id="stat-edges">0</span><small>links</small></div>
+        <div class="stat"><span id="stat-depth">0</span><small>depth</small></div>
+        <div class="stat"><span id="stat-path">—</span><small>path</small></div>
       </div>
-      <div id="combine-hint" style="font-size:0.72rem;margin-bottom:14px;min-height:16px"></div>
 
-      <div id="research-area">
-        <h2>Research</h2>
-        <div class="research-cards" id="research-cards"></div>
-      </div>
+      <div id="status"></div>
     </div>
 
-    <!-- Log -->
-    <div id="log-area"></div>
-  </main>
+    <div id="side-panel">
+      <div id="path-display" class="hidden">
+        <h3>Path found</h3>
+        <div id="path-nodes"></div>
+      </div>
 
-  <!-- Right: tech tree + deploy -->
-  <aside id="panel-right">
-    <div>
-      <h2>Discovered</h2>
-      <div id="tech-list"></div>
+      <div id="legend">
+        <div class="legend-item"><span class="dot source-dot"></span> Source</div>
+        <div class="legend-item"><span class="dot target-dot"></span> Target</div>
+        <div class="legend-item"><span class="dot hub-dot"></span> Hub (high degree)</div>
+        <div class="legend-item"><span class="dot path-dot"></span> Path</div>
+      </div>
     </div>
-    <div>
-      <h2>Deploy</h2>
-      <div id="deploy-list"></div>
-    </div>
-  </aside>
+  </div>
 
-</div>
+  <div id="graph-container"></div>
 
-<div id="tooltip"></div>
-<script src="game.js"></script>
+  <div id="tooltip"></div>
+
+  <script src="https://unpkg.com/3d-force-graph@1.73.0/dist/3d-force-graph.min.js"></script>
+  <script src="graph.js"></script>
 </body>
 </html>
