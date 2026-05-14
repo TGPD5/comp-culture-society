@@ -1,0 +1,15 @@
+{
+  "name": "wordguessr",
+  "version": "1.0.0",
+  "description": "wordguessr — semantic word guessing game using GloVe cosine similarity",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "download-vectors": "node scripts/download-vectors.js",
+    "build-vocab": "node scripts/build-vocab.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}

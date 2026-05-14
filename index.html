@@ -3,59 +3,78 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WikiGraph — Six Degrees of Wikipedia</title>
+  <title>wordguessr</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="ui">
-    <div id="topbar">
-      <h1>WikiGraph</h1>
+  <div id="app">
+    <header>
+      <h1>wordguessr</h1>
+      <p class="subtitle">Find the secret word by semantic similarity — each guess reveals nearby words to help you close in fast.</p>
+    </header>
 
-      <div class="inputs">
-        <div class="input-group">
-          <label>From</label>
-          <input id="source" type="text" placeholder="e.g. ARPANET" value="ARPANET" autocomplete="off" />
-          <div class="suggestions" id="source-suggestions"></div>
+    <div id="status-banner" class="hidden"></div>
+
+    <section id="input-area">
+      <form id="guess-form">
+        <input
+          id="guess-input"
+          type="text"
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+          placeholder="Type a word…"
+          maxlength="40"
+        />
+        <button type="submit">Guess</button>
+      </form>
+    </section>
+
+    <section id="stats-bar">
+      <span id="guess-count">0 guesses</span>
+      <button id="surrender-btn" class="danger">Give up</button>
+    </section>
+
+    <section id="result-area">
+      <div id="result-message" class="hidden"></div>
+
+      <table id="guesses-table" class="hidden">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Word</th>
+            <th>Similarity</th>
+            <th>Warmth</th>
+          </tr>
+        </thead>
+        <tbody id="guesses-body"></tbody>
+      </table>
+    </section>
+
+    <dialog id="surrender-dialog">
+      <div class="dialog-content">
+        <p>Are you sure you want to give up?</p>
+        <p class="dialog-sub">The answer will be revealed.</p>
+        <div class="dialog-buttons">
+          <button id="confirm-surrender" class="danger">Yes, reveal</button>
+          <button id="cancel-surrender">Cancel</button>
         </div>
-        <div class="arrow">→</div>
-        <div class="input-group">
-          <label>To</label>
-          <input id="target" type="text" placeholder="e.g. Facebook" value="Facebook" autocomplete="off" />
-          <div class="suggestions" id="target-suggestions"></div>
-        </div>
-        <button id="start-btn">Explore</button>
       </div>
+    </dialog>
 
-      <div id="stats" class="hidden">
-        <div class="stat"><span id="stat-nodes">0</span><small>nodes</small></div>
-        <div class="stat"><span id="stat-edges">0</span><small>links</small></div>
-        <div class="stat"><span id="stat-depth">0</span><small>depth</small></div>
-        <div class="stat"><span id="stat-path">—</span><small>path</small></div>
+    <dialog id="win-dialog">
+      <div class="dialog-content">
+        <h2>You got it! 🎉</h2>
+        <p id="win-message"></p>
+        <button id="close-win">Close</button>
       </div>
+    </dialog>
 
-      <div id="status"></div>
-    </div>
-
-    <div id="side-panel">
-      <div id="path-display" class="hidden">
-        <h3>Path found</h3>
-        <div id="path-nodes"></div>
-      </div>
-
-      <div id="legend">
-        <div class="legend-item"><span class="dot source-dot"></span> Source</div>
-        <div class="legend-item"><span class="dot target-dot"></span> Target</div>
-        <div class="legend-item"><span class="dot hub-dot"></span> Hub (high degree)</div>
-        <div class="legend-item"><span class="dot path-dot"></span> Path</div>
-      </div>
-    </div>
+    <footer>
+      <p>wordguessr — cosine similarity via GloVe word vectors.</p>
+    </footer>
   </div>
 
-  <div id="graph-container"></div>
-
-  <div id="tooltip"></div>
-
-  <script src="https://unpkg.com/3d-force-graph@1.73.0/dist/3d-force-graph.min.js"></script>
-  <script src="graph.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
