@@ -134,6 +134,16 @@ button.danger:hover { background: var(--danger); color: #fff; }
   align-items: center;
 }
 #guess-count { font-size: 0.9rem; color: var(--text-muted); }
+.stats-actions { display: flex; gap: 0.5rem; }
+#new-game-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+#new-game-btn:hover { background: var(--accent); color: #fff; }
+#surrender-btn { padding: 0.5rem 1rem; font-size: 0.9rem; }
 
 /* Result message */
 #result-message {

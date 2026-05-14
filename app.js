@@ -24,6 +24,7 @@
   const lm1El            = document.getElementById('lm-1');
   const lm10El           = document.getElementById('lm-10');
   const lm500El          = document.getElementById('lm-500');
+  const newGameBtn       = document.getElementById('new-game-btn');
   const surrenderBtn     = document.getElementById('surrender-btn');
   const surrenderDialog  = document.getElementById('surrender-dialog');
   const confirmSurrender = document.getElementById('confirm-surrender');
@@ -86,9 +87,8 @@
     return scores.slice(0, count).map(([w, s]) => ({ word: w, similarity: Math.round(s * 10000) / 100 }));
   }
 
-  function getDailyTarget() {
-    const dayIndex = Math.floor(Date.now() / 86400000) % wordList.length;
-    return wordList[dayIndex];
+  function randomTarget() {
+    return wordList[Math.floor(Math.random() * wordList.length)];
   }
 
   // Return the nth-closest word to the target (1-indexed) and its similarity score.
@@ -219,26 +219,35 @@
   function hideMsg() { resultMsg.classList.add('hidden'); }
 
   // --- Persistence ---
-  function todayKey() { return new Date().toISOString().slice(0, 10); }
-
   function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      date: todayKey(), guesses, guessCount, won,
+      target, guesses, guessCount, won,
       revealedWords: [...revealedWords],
     }));
   }
 
+  // Returns true if a saved game was found and restored.
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
+      if (!raw) return false;
       const data = JSON.parse(raw);
-      if (data.date !== todayKey()) return;
+      if (!data.target || !normed[data.target]) return false;
+      target        = data.target;
       guesses       = data.guesses       || [];
       guessCount    = data.guessCount    || 0;
       won           = data.won           || false;
       revealedWords = new Set(data.revealedWords || []);
-    } catch (_) {}
+      return true;
+    } catch (_) { return false; }
+  }
+
+  function resetState() {
+    target        = randomTarget();
+    guesses       = [];
+    guessCount    = 0;
+    won           = false;
+    revealedWords = new Set();
   }
 
   // --- Guess logic (all client-side) ---
@@ -282,7 +291,7 @@
     if (correct) {
       won = true;
       saveState();
-      winMessage.textContent = `The word was "${word}". You found it in ${guessCount} guess${guessCount !== 1 ? 'es' : ''}!`;
+      winMessage.textContent = `You found it in ${guessCount} guess${guessCount !== 1 ? 'es' : ''}! Hit New game to play again.`;
       winDialog.showModal();
     }
   }
@@ -297,12 +306,24 @@
     processGuess(word);
   });
 
+  newGameBtn.addEventListener('click', () => {
+    resetState();
+    saveState();
+    renderLandmarks();
+    renderGuesses();
+    hideMsg();
+    input.disabled = false;
+    form.querySelector('button[type=submit]').disabled = false;
+    surrenderBtn.disabled = false;
+    input.focus();
+  });
+
   surrenderBtn.addEventListener('click', () => { if (!won) surrenderDialog.showModal(); });
 
   confirmSurrender.addEventListener('click', () => {
     surrenderDialog.close();
     won = true;
-    showMsg(`The word was "${target}". Better luck tomorrow!`, 'not-found');
+    showMsg(`The word was "${target}". Hit New game to try again!`, 'not-found');
     surrenderBtn.disabled = true;
     input.disabled = true;
     form.querySelector('button[type=submit]').disabled = true;
@@ -315,18 +336,21 @@
 
   // --- Init ---
   async function init() {
-    loadState();
     try {
       await loadVocab();
     } catch (_) {
       return;
     }
+    const restored = loadState();
+    if (!restored) resetState();
+    saveState();
+    renderLandmarks();
     renderGuesses();
     if (won) {
       input.disabled = true;
       form.querySelector('button[type=submit]').disabled = true;
       surrenderBtn.disabled = true;
-      showMsg("You already solved today's puzzle! Come back tomorrow.", '');
+      showMsg('Game over — hit New game to play again!', '');
     } else {
       input.focus();
     }
