@@ -15,6 +15,15 @@
 
     <div id="status-banner" class="hidden"></div>
 
+    <div id="landmarks" class="hidden">
+      <span class="landmark-label">Score guide:</span>
+      <span id="lm-1"></span>
+      <span class="landmark-sep">·</span>
+      <span id="lm-10"></span>
+      <span class="landmark-sep">·</span>
+      <span id="lm-500"></span>
+    </div>
+
     <section id="input-area">
       <form id="guess-form">
         <input
@@ -43,7 +52,8 @@
           <tr>
             <th>#</th>
             <th>Word</th>
-            <th>Similarity</th>
+            <th>Score</th>
+            <th>Rank</th>
             <th>Warmth</th>
           </tr>
         </thead>
